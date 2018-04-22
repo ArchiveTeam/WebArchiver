@@ -22,7 +22,7 @@ class BaseServer:
         self._write_list = []
         self._error_list = []
         self._write_queue = {}
-        self._last_staging_request = 0
+        self._last_stager_request = 0
         self._last_ping = 0
 
         print(self._address)

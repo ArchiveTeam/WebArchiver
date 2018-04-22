@@ -16,8 +16,8 @@ class CrawlerServer(BaseServer):
     def __init__(self, ip=None, port=None):
         self._port = random.randrange(3000, 6000)
         super().__init__(socket.getfqdn(), self._port)
-        self._staging = {}
-        self.add_staging((ip, port))
+        self._stager = {}
+        self.add_stager((ip, port))
         self._jobs = {}
         self._upload_permissions = UploadPermissions()
         self._filenames_set = set()
@@ -28,7 +28,7 @@ class CrawlerServer(BaseServer):
 
     def _run_round(self):
         super()._run_round()
-        self.request_staging()
+        self.request_stager()
         self.ping()
         self.upload()
         self.finish_urls()
@@ -40,39 +40,39 @@ class CrawlerServer(BaseServer):
         self._write_queue[s] = []
         return s
 
-    def add_staging(self, listener, extra=False, s=None):
-        for s_ in self._staging:
+    def add_stager(self, listener, extra=False, s=None):
+        for s_ in self._stager:
             if s_.listener == listener:
                 return None
         s_ = self._create_socket(listener) if not s else s
         self._read_list.append(s_)
-        self._staging[s_] = CrawlerNode()
+        self._stager[s_] = CrawlerNode()
         self._write_socket_message(s_, 'ANNOUNCE_CRAWLER' \
                                    + ('_EXTRA' if extra else ''),
                                    *self._address)
         return True
 
-    def request_staging(self):
-        if self.staging_needed > 0 and check_time(self._last_staging_request,
+    def request_stager(self):
+        if self.stager_needed > 0 and check_time(self._last_stager_request,
                                                   REQUEST_STAGING_TIME):
             message = []
-            for s in self._staging:
+            for s in self._stager:
                 message.extend(s.listener)
-            self._write_socket_message(sample(self._staging, 1),
-                                       'REQUEST_STAGING', self.staging_needed,
+            self._write_socket_message(sample(self._stager, 1),
+                                       'REQUEST_STAGING', self.stager_needed,
                                        *message)
-            self._last_staging_request = time.time()
+            self._last_stager_request = time.time()
 
     def ping(self):
         if check_time(self._last_ping, PING_TIME):
-            for s in self._staging:
-                self._staging[s].pong = False
-            self._write_socket_message(self._staging, 'PING')
+            for s in self._stager:
+                self._stager[s].pong = False
+            self._write_socket_message(self._stager, 'PING')
             self._last_ping = time.time()
 
   #  def request_upload(self):
   #      if check_time(self._last_upload_request, config.REQUEST_UPLOAD_TIME):
-  #          self._write_socket_message(self._jobs[job]['staging'],
+  #          self._write_socket_message(self._jobs[job]['stager'],
   #                                     'REQUEST_UPLOAD')
   #          self._last_upload_request = time.time()
   #          time.sleep(1)
@@ -81,7 +81,7 @@ class CrawlerServer(BaseServer):
         for job, path in self._filenames_set:
             warc_file = self._upload_permissions[path]
             if not warc_file.requested:
-                self._write_socket_message(self._jobs[job].staging,
+                self._write_socket_message(self._jobs[job].stager,
                                            'REQUEST_UPLOAD_PERMISSION', job,
                                            path, warc_file.filesize)
                 warc_file.requested = True
@@ -108,11 +108,11 @@ class CrawlerServer(BaseServer):
             #print(identifier, url)
             job = self._jobs[identifier]
             job.finished_url(url)
-            self._write_socket_message(job.staging, 'JOB_URL_FINISHED',
+            self._write_socket_message(job.stager, 'JOB_URL_FINISHED',
                                        identifier, url,
-                                       *job.get_url_staging(url).listener)
+                                       *job.get_url_stager(url).listener)
             finished.add((identifier, url))
-            job.delete_url_staging(url)
+            job.delete_url_stager(url)
             print(self._jobs)
         self._finished_urls_set.difference_update(finished)
 
@@ -122,8 +122,8 @@ class CrawlerServer(BaseServer):
             finished.add((identifier, parenturl, url))
             if self._jobs[identifier].archived_url(url):
                 continue
-            staging = sample(self._jobs[identifier].staging, 1)[0]
-            self._write_socket_message(staging, 'JOB_URL_DISCOVERED',
+            stager = sample(self._jobs[identifier].stager, 1)[0]
+            self._write_socket_message(stager, 'JOB_URL_DISCOVERED',
                                        identifier, parenturl, url)
         self._found_urls_set.difference_update(finished)
 
@@ -136,7 +136,7 @@ class CrawlerServer(BaseServer):
                 job: self._jobs[job].received_url_quota
                 for job in self._jobs
             })
-            self._write_socket_message(sample(self._jobs[job].staging, 1)[0],
+            self._write_socket_message(sample(self._jobs[job].stager, 1)[0],
                                        'REQUEST_URL_QUOTA', job)
 
     def create_job(self, identifier):
@@ -152,10 +152,10 @@ class CrawlerServer(BaseServer):
             return False
         return self._jobs[identifier].start()
 
-    def job_add_staging(self, identifier, s):
+    def job_add_stager(self, identifier, s):
         if identifier not in self._jobs:
             return False
-        self._jobs[identifier].add_staging(s)
+        self._jobs[identifier].add_stager(s)
         return True
 
     def job_add_url(self, s, identifier, url):
@@ -165,13 +165,13 @@ class CrawlerServer(BaseServer):
         return True
 
     def _command_pong(self, s, message):
-        if self._staging[s].pong is False:
-            self._staging[s].pong = True
+        if self._stager[s].pong is False:
+            self._stager[s].pong = True
         else:
             self.ping()
 
     def _command_confirmed(self, s, message):
-        self._staging[s].confirmed = True
+        self._stager[s].confirmed = True
         if message[1] == '0':
             self._write_socket_message(s, 'CONFIRMED', 1)
 
@@ -180,7 +180,7 @@ class CrawlerServer(BaseServer):
 
     def _command_new_job_crawl(self, s, message):
         self.create_job(message[1])
-        self.job_add_staging(message[1], s)
+        self.job_add_stager(message[1], s)
         self._write_socket_message(s, 'JOB_CRAWL_CONFIRMED', message[1])
 
     def _command_job_url_crawl(self, s, message):
@@ -199,9 +199,9 @@ class CrawlerServer(BaseServer):
         os.remove(message[2])
         os.remove(message[2] + '.uploading')
 
-    def _command_add_staging(self, s, message):
+    def _command_add_stager(self, s, message):
         listener = get_listener(message[1:])[0]
-        r = self.add_staging(listener, extra=True)
+        r = self.add_stager(listener, extra=True)
 #        if r is None: TODO don't have to report this(?)
 #            self._write_socket_message(s, 'STAGING_ALREADY_ADDED', *listener)
 #        elif r is true:
@@ -220,8 +220,8 @@ class CrawlerServer(BaseServer):
         pass # TODO
 
     @property
-    def staging_needed(self):
-        n = MAX_STAGING - len(self._staging)
+    def stager_needed(self):
+        n = MAX_STAGING - len(self._stager)
         return 0 if n < 0 else n
 
 

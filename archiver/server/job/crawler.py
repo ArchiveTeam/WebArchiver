@@ -7,7 +7,7 @@ from archiver.job import Job
 class CrawlerServerJob:
     def __init__(self, identifier, filenames_set, finished_urls_set,
                  found_urls_set):
-        self.staging = []
+        self.stager = []
         self.started = False
         self.received_url_quota = time.time()
         self._identifier = identifier
@@ -17,10 +17,10 @@ class CrawlerServerJob:
         self._url_database = UrlDeduplicationDatabase(self._identifier,
             'crawler_' + self._identifier)
 
-    def add_staging(self, s):
-        if s in self.staging:
+    def add_stager(self, s):
+        if s in self.stager:
             return None
-        self.staging.append(s)
+        self.stager.append(s)
 
     def add_url(self, s, url):
         if self.finished_url(url):
@@ -32,10 +32,10 @@ class CrawlerServerJob:
         self._received_url_quota = time.time()
         self._job.increase_url_quota(i)
 
-    def get_url_staging(self, url):
+    def get_url_stager(self, url):
         return self._urls[url]
 
-    def delete_url_staging(self, url):
+    def delete_url_stager(self, url):
         del self._urls[url]
 
     def start(self):

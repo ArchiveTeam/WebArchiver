@@ -5,17 +5,17 @@ from archiver.server.base import Node
 from archiver.utils import sample, split_set
 
 
-class StagingServerJob:
-    def __init__(self, identifier, initial_urls=set(), initial_staging=None):
+class StagerServerJob:
+    def __init__(self, identifier, initial_urls=set(), initial_stager=None):
         self.identifier = identifier
-        self.initial_staging = initial_staging
+        self.initial_stager = initial_stager
         self.initial_urls = set(initial_urls)
         self.discovered_urls = set(initial_urls)
         self.current_urls = set()
         self.finished = False
 
         self.crawlers = {}
-        self.staging = {}
+        self.stager = {}
         self.backup = {}
 
         self.url_rate = 2
@@ -23,13 +23,13 @@ class StagingServerJob:
     def add_crawler(self, s):
         if s in self.crawlers:
             return None
-        self.crawlers[s] = StagingServerJobCrawler(s)
+        self.crawlers[s] = StagerServerJobCrawler(s)
 
     def crawler_confirmed(self, s):
         self.crawlers[s].confirmed = True
 
-    def add_staging(self, s):
-        self.staging[s] = StagingServerJobStaging(s)
+    def add_stager(self, s):
+        self.stager[s] = StagerServerJobStager(s)
         self.backup[s.listener] = set()
 
     def backup_url(self, s, url):
@@ -38,14 +38,14 @@ class StagingServerJob:
     def share_urls(self):
         if len(self.discovered_urls) == 0:
             return None
-        url_lists = split_set(self.discovered_urls, len(self.staging)+1)
-        backups = sample(self.staging, MAX_BACKUPS)
+        url_lists = split_set(self.discovered_urls, len(self.stager)+1)
+        backups = sample(self.stager, MAX_BACKUPS)
         for url in url_lists.pop():
             #self.add_url_crawler(url)
             yield url, None, backups
             self.discovered_urls.remove(url)
-        for s in self.staging:
-            backups = sample(['this'] + [s_ for s_ in self.staging if s_ != s],
+        for s in self.stager:
+            backups = sample(['this'] + [s_ for s_ in self.stager if s_ != s],
                              MAX_BACKUPS) # FIXME make pretty
             add_current = 'this' in backups
             if add_current:
@@ -76,16 +76,16 @@ class StagingServerJob:
             self.crawlers[s].urls.remove(url)
 
     def confirmed(self, s, i):
-        if  self.staging[s].confirmed:
+        if  self.stager[s].confirmed:
             return None
-        self.staging[s].confirmed = True
+        self.stager[s].confirmed = True
         if i == 0:
             return 1
         elif i == -1:
             return -1 # TODO  waiting for each s to add job?
 
-    def started_staging(self, s):
-        self.staging[s].started = True
+    def started_stager(self, s):
+        self.stager[s].started = True
 
     def started_crawl(self, s):
         self.crawlers[s].started = True
@@ -98,7 +98,7 @@ class StagingServerJob:
 
     @property
     def started(self):
-        for c in self.staging.values():
+        for c in self.stager.values():
             if not c.started:
                 return False
         return True
@@ -111,8 +111,8 @@ class StagingServerJob:
         return True
 
     @property
-    def staging_confirmed(self):
-        for c in self.staging.values():
+    def stager_confirmed(self):
+        for c in self.stager.values():
             if not c.confirmed:
                 return False
         return True
@@ -140,7 +140,7 @@ class StagingServerJob:
         self._counter = value
 
 
-class StagingServerJobCrawler:
+class StagerServerJobCrawler:
     def __init__(self, s):
         self.s = s
         self.confirmed = False
@@ -151,11 +151,11 @@ class StagingServerJobCrawler:
         self.urls.add(url)
 
 
-class StagingServerJobStaging:
+class StagerServerJobStager:
     def __init__(self, s):
         self.s = s
         self.confirmed = False
         self.started = False
 
-__all__ = (StagingServerJob,)
+__all__ = (StagerServerJob,)
 
