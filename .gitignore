@@ -1,0 +1,9 @@
+*~
+*.pyc
+__pycache__/
+old/
+data/
+starttest*
+testjob*
+*.db
+warc/
