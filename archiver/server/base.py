@@ -17,7 +17,7 @@ class Node:
 
 class BaseServer:
     def __init__(self, ip=None, port=None):
-        self._address = (ip or socket.gethostname(), port or DATA_PORT)
+        self._address = (ip or socket.getfqdn(), port or DATA_PORT)
         self._read_list = []
         self._write_list = []
         self._error_list = []
@@ -29,7 +29,7 @@ class BaseServer:
         self._socket = Node(socket.socket(socket.AF_INET, socket.SOCK_STREAM),
                             self._address)
         self._socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-        self._socket.bind(self._address)
+        self._socket.bind(('0.0.0.0', self._address[1]))
         self._socket.listen(LISTEN_QUEUE)
         self._read_list.append(self._socket)
 

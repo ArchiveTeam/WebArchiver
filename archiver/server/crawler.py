@@ -15,7 +15,7 @@ from archiver.utils import check_time, get_listener, key_lowest_value, sample
 class CrawlerServer(BaseServer):
     def __init__(self, ip=None, port=None):
         self._port = random.randrange(3000, 6000)
-        super().__init__(socket.gethostname(), self._port)
+        super().__init__(socket.getfqdn(), self._port)
         self._staging = {}
         self.add_staging((ip, port))
         self._jobs = {}

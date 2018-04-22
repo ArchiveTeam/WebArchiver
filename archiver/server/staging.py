@@ -13,7 +13,7 @@ from archiver.utils import check_time, get_listener, sample, write_file
 class StagingServer(BaseServer):
     def __init__(self, ip=None, port=None):
         self._port = random.randrange(3000, 6000)
-        super().__init__(socket.gethostname(), self._port)
+        super().__init__(socket.getfqdn(), self._port)
         self._data_sockets = []
         self._urls = None#Urls()
         self._staging = {}
