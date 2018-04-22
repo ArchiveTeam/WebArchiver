@@ -1,12 +1,12 @@
-# Archiver
+# WebArchiver
 
-**Archiver** is a decentralized web archiving system. It allows for servers to be added and removed and minimizes data-loss when a server is offline.
+**WebArchiver** is a decentralized web archiving system. It allows for servers to be added and removed and minimizes data-loss when a server is offline.
 
 This project is still being developed.
 
 ## Usage
 
-To run Archiver:
+To run WebArchiver:
 1. `git clone` this repository.
 2. `cd` into it.
 3. Run `python3 main.py` with options.
@@ -23,7 +23,7 @@ The following options are available for setting up a server in a network or crea
 
 ## Servers
 
-Archiver consists of staging and crawling servers. Staging servers divide the work among crawlers and other staging servers.
+WebArchiver consists of staging and crawling servers. Staging servers divide the work among crawlers and other staging servers.
 
 Settings for a server can be set by running
 ```bash
@@ -43,7 +43,7 @@ The crawling server received URLs from the staging server it is connected to, cr
 
 ## The protocol
 
-**Archiver** communicates over TCP using its own protocol. The protocol is explained here.
+WebArchiver communicates over TCP using its own protocol. The protocol is explained here.
 
 The protocol has methods implemented. Data that comes with it is encoded in base64 and joined with a semicolon. On the receiving side data is split on the semicolon, decoded and processed.
 
