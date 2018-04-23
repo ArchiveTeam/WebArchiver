@@ -9,7 +9,8 @@ from archiver.database import UrlDeduplicationDatabase
 from archiver.server.base import BaseServer, Node
 from archiver.server.job import CrawlerServerJob
 from archiver.server.node import CrawlerNode
-from archiver.utils import check_time, get_listener, key_lowest_value, sample
+from archiver.set import LockedSet
+from archiver.utils import check_time, key_lowest_value, sample
 
 
 class CrawlerServer(BaseServer):
@@ -20,9 +21,9 @@ class CrawlerServer(BaseServer):
         self.add_stager((ip, port))
         self._jobs = {}
         self._upload_permissions = UploadPermissions()
-        self._filenames_set = set()
-        self._finished_urls_set = set()
-        self._found_urls_set = set()
+        self._filenames_set = LockedSet()
+        self._finished_urls_set = LockedSet()
+        self._found_urls_set = LockedSet()
         self._last_upload_request = 0
         self._last_url_quota = 0
 
@@ -49,18 +50,15 @@ class CrawlerServer(BaseServer):
         self._stager[s_] = CrawlerNode()
         self._write_socket_message(s_, 'ANNOUNCE_CRAWLER' \
                                    + ('_EXTRA' if extra else ''),
-                                   *self._address)
+                                   self._address)
         return True
 
     def request_stager(self):
         if self.stager_needed > 0 and check_time(self._last_stager_request,
                                                   REQUEST_STAGER_TIME):
-            message = []
-            for s in self._stager:
-                message.extend(s.listener)
             self._write_socket_message(sample(self._stager, 1),
                                        'REQUEST_STAGER', self.stager_needed,
-                                       *message)
+                                       *[s.listener for s in self._stager])
             self._last_stager_request = time.time()
 
     def ping(self):
@@ -78,21 +76,23 @@ class CrawlerServer(BaseServer):
   #          time.sleep(1)
 
     def upload(self):
-        for job, path in self._filenames_set:
-            warc_file = self._upload_permissions[path]
-            if not warc_file.requested:
-                self._write_socket_message(self._jobs[job].stager,
-                                           'REQUEST_UPLOAD_PERMISSION', job,
-                                           path, warc_file.filesize)
-                warc_file.requested = True
-                continue
-            if warc_file.chosen is False:
-                del self._upload_permissions[path]
-            elif warc_file.chosen is not None and not warc_file.revoked:
-                self._write_socket_message(warc_file.to_revoke,
-                                           'REQUEST_UPLOAD_REVOKE', job, path)
-                warc_file.revoked = True
-                self.upload_warc(warc_file.chosen, job, path)
+        with self._filenames_set.lock:
+            for job, path in self._filenames_set:
+                warc_file = self._upload_permissions[path]
+                if not warc_file.requested:
+                    self._write_socket_message(self._jobs[job].stager,
+                                               'REQUEST_UPLOAD_PERMISSION',
+                                               job, path, warc_file.filesize)
+                    warc_file.requested = True
+                    continue
+                if warc_file.chosen is False:
+                    del self._upload_permissions[path]
+                elif warc_file.chosen is not None and not warc_file.revoked:
+                    self._write_socket_message(warc_file.to_revoke,
+                                               'REQUEST_UPLOAD_REVOKE', job,
+                                               path)
+                    warc_file.revoked = True
+                    self.upload_warc(warc_file.chosen, job, path)
 
     def upload_warc(self, s, job, path):
         if os.path.isfile(path + '.uploading'):
@@ -103,28 +103,30 @@ class CrawlerServer(BaseServer):
 
     def finish_urls(self):
         finished = set()
-        for identifier, url in self._finished_urls_set:
-            print(self._jobs)
-            #print(identifier, url)
-            job = self._jobs[identifier]
-            job.finished_url(url)
-            self._write_socket_message(job.stager, 'JOB_URL_FINISHED',
-                                       identifier, url,
-                                       *job.get_url_stager(url).listener)
-            finished.add((identifier, url))
-            job.delete_url_stager(url)
-            print(self._jobs)
+        with self._finished_urls_set.lock:
+            for identifier, url in self._finished_urls_set:
+                print(self._jobs)
+                #print(identifier, url)
+                job = self._jobs[identifier]
+                job.finished_url(url)
+                self._write_socket_message(job.stager, 'JOB_URL_FINISHED',
+                                           identifier, url,
+                                           job.get_url_stager(url).listener)
+                finished.add((identifier, url))
+                job.delete_url_stager(url)
+                print(self._jobs)
         self._finished_urls_set.difference_update(finished)
 
     def found_urls(self):
         finished = set()
-        for identifier, parenturl, url in self._found_urls_set:
-            finished.add((identifier, parenturl, url))
-            if self._jobs[identifier].archived_url(url):
-                continue
-            stager = sample(self._jobs[identifier].stager, 1)[0]
-            self._write_socket_message(stager, 'JOB_URL_DISCOVERED',
-                                       identifier, parenturl, url)
+        with self._found_urls_set.lock:
+            for identifier, parenturl, url in self._found_urls_set:
+                finished.add((identifier, parenturl, url))
+                if self._jobs[identifier].archived_url(url):
+                    continue
+                stager = sample(self._jobs[identifier].stager, 1)[0]
+                self._write_socket_message(stager, 'JOB_URL_DISCOVERED',
+                                           identifier, parenturl, url)
         self._found_urls_set.difference_update(finished)
 
     def request_url_quota(self):
@@ -172,11 +174,11 @@ class CrawlerServer(BaseServer):
 
     def _command_confirmed(self, s, message):
         self._stager[s].confirmed = True
-        if message[1] == '0':
+        if message[1] == 0:
             self._write_socket_message(s, 'CONFIRMED', 1)
 
     def _command_assigned_url_quota(self, s, message):
-        self._jobs[message[1]].increase_url_quota(int(message[2]))
+        self._jobs[message[1]].increase_url_quota(message[2])
 
     def _command_new_job_crawl(self, s, message):
         self.create_job(message[1])
@@ -200,8 +202,7 @@ class CrawlerServer(BaseServer):
         os.remove(message[2] + '.uploading')
 
     def _command_add_stager(self, s, message):
-        listener = get_listener(message[1:])[0]
-        r = self.add_stager(listener, extra=True)
+        r = self.add_stager(message[1], extra=True)
 #        if r is None: TODO don't have to report this(?)
 #            self._write_socket_message(s, 'STAGER_ALREADY_ADDED', *listener)
 #        elif r is true:

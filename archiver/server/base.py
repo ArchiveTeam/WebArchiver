@@ -90,8 +90,8 @@ class BaseServer:
 
     def _write_socket_file(self, s, filename, *message):
         with open(filename, 'rb') as f:
-            self._write_socket_message(s, message[0], filename, 'FILE',
-                                       f.read(), *message[1:])
+            self._write_socket_message(s, message[0], filename, f.read(),
+                                       *message[1:])
 
     def _process_message(self, s, message):
         getattr(self, '_command_{}'.format(message[0].lower()))(s, message)

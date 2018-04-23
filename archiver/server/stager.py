@@ -7,7 +7,7 @@ from archiver.config import *
 from archiver.server.job import StagerServerJob
 from archiver.server.base import BaseServer, Node
 from archiver.server.node import StagerNodeCrawler, StagerNodeStager
-from archiver.utils import check_time, get_listener, sample, write_file
+from archiver.utils import check_time, sample, write_file
 
 
 class StagerServer(BaseServer):
@@ -62,7 +62,7 @@ class StagerServer(BaseServer):
         self.add_stager(s, listener)
         self._write_socket_message(s, 'ANNOUNCE_STAGER' \
                                    + ('_EXTRA' if extra else ''),
-                                   *self._address)
+                                   self._address)
         return True
 
     def ping(self):
@@ -87,8 +87,7 @@ class StagerServer(BaseServer):
                         self._write_socket_message(s, 'JOB_URL',
                                                    job.identifier, url)
                     self._write_socket_message(backups, 'JOB_URL_BACKUP',
-                                               job.identifier, url,
-                                               *s.listener)
+                                               job.identifier, url, s.listener)
             self._last_jobs_check = time.time()
 
     def _command_job_url(self, s, message):
@@ -117,8 +116,7 @@ class StagerServer(BaseServer):
             print(self._listeners, listeners, listeners[0] in self._listeners)
             stager = [self._listeners[l] for l in listeners]
         else:
-            stager = sample(self._stager,
-                             max(0, MAX_STAGER - len(job.stager)))
+            stager = sample(self._stager, max(0, MAX_STAGER - len(job.stager)))
         for s in stager:
             job.add_stager(s)
             #job['stager'][s] = {
@@ -129,14 +127,12 @@ class StagerServer(BaseServer):
         self._write_socket_message(stager, 'NEW_JOB', identifier)
         if initial:
             for s in job.stager:
-                listeners = list(self._address)
-                for s_ in [s_ for s_ in job.stager if s_ != s]:
-                    listeners.extend(s_.listener)
                 self._write_socket_message(s, 'NEW_JOB_STAGER', identifier,
-                                           *listeners)
+                                           self._address,
+                                           *[d for d in job.stager if d != s])
             counter = sample(job.stager, 1)[0]
             self._write_socket_message(job.stager, 'JOB_SET_COUNTER',
-                                       identifier, *counter.listener)
+                                       identifier, counter.listener)
             job.add_counter(counter)
         else:
             self._write_socket_message(job.stager, 'CONFIRMED_JOB', 0,
@@ -209,44 +205,41 @@ class StagerServer(BaseServer):
                                    message[2])
 
     def _command_job_url_backup(self, s, message):
-        listener = get_listener(message[3:])[0]
         #self._jobs[message[1]]['urls'].add(message[2]) #TODO should this be currently crawling or currently using
         self._jobs[message[1]].backup_url(s, message[2])
 
     def _command_job_url_finished(self, s, message):
-        listener = get_listener(message[3:])[0]
-        self._jobs[message[1]].finish_url(s, message[2], listener)
+        self._jobs[message[1]].finish_url(s, message[2], message[3])
 
     def _command_job_url_discovered(self, s, message):
         # TODO check if URL should be crawled
         self._jobs[message[1]].add_url(message[3])
 
     def _command_job_set_counter(self, s, message):
-        listener = get_listener(message[2:])[0]
         job = self._jobs[message[1]]
-        if listener == self._address:
+        if message[2] == self._address:
             job.set_as_counter()
         else:
-            job.add_counter(self._listeners[listener])
+            job.add_counter(self._listeners[message[2]])
 
     def _command_request_stager(self, s, message):
-        listeners = get_listener(message[2:])
-        for s_ in sample(self._stager, int(message[1])):
+        listeners = message[2:]
+        for s_ in sample(self._stager, message[1]):
             print(type(s_))
             if s_.listener not in listeners:
                 self._write_socket_message(s, 'ADD_STAGER',
-                                           *s_.listener)
+                                           s_.listener)
 
     def _command_request_url_quota(self, s, message):
         print(s.listener)
         job = self._jobs[message[1]]
         if job.is_counter:
             self._command_assigned_url_quota_crawler(None,
-                ['', message[1], job.url_quota, s.listener[0], s.listener[1]])
+                ['', message[1], job.url_quota, s.listener])
         else:
             self._write_socket_message(job.counter,
                                        'REQUEST_URL_QUOTA_CRAWLER', message[1],
-                                       *s.listener)
+                                       s.listener)
 
     def _command_request_url_quota_crawler(self, s, message):
         quota = self._jobs[message[1]].url_quota
@@ -254,8 +247,7 @@ class StagerServer(BaseServer):
                                    message[1], quota, *message[2:])
 
     def _command_assigned_url_quota_crawler(self, s, message):
-        listener = get_listener(message[3:])[0]
-        self._write_socket_message(self._listeners[listener],
+        self._write_socket_message(self._listeners[message[3]],
                                    'ASSIGNED_URL_QUOTA', *message[1:3])
                                    
 
@@ -269,48 +261,45 @@ class StagerServer(BaseServer):
         self.create_job(message[1], initial_stager=s, initial=False)
 
     def _command_new_job_stager(self, s, message):
-        self.job_add_stager(message[1], listeners=get_listener(message[2:]),
-                             initial=False)
+        self.job_add_stager(message[1], listeners=message[2:], initial=False)
 
     def _command_confirmed_job(self, s, message):
         if message[2] not in self._jobs:
             self._write_socket_message(s, message[0], -1, message[2])
             return None
-        i = self._jobs[message[2]].confirmed(s, int(message[1]))
+        i = self._jobs[message[2]].confirmed(s, message[1])
         if i != -1 and i != None:
             self._write_socket_message(s, 'CONFIRMED_JOB', i, message[2])
 
     def _command_announce_crawler(self, s, message):
-        listener = get_listener(message[1:])[0]
-        s.listener = listener
-        self.add_crawler(s, listener)
+        s.listener = message[1]
+        self.add_crawler(s, message[1])
         self._write_socket_message(s, 'CONFIRMED', 0)
 
     def _command_announce_crawler_extra(self, s, message):
         self._command_announce_crawler(s, message)
 
     def _command_announce_stager(self, s, message, extra=False):
-        listener = get_listener(message[1:])[0]
-        s.listener = listener
-        if self.add_stager(s, listener) and not extra:
+        s.listener = message[1]
+        if self.add_stager(s, message[1]) and not extra:
             for s_ in self._stager:
                 if s_ == s:
                     continue
-                self._write_socket_message(s, 'STAGER_NEW', *s_.listener)
+                self._write_socket_message(s, 'STAGER_NEW', s_.listener)
         self._write_socket_message(s, 'CONFIRMED', 0)
 
     def _command_announce_stager_extra(self, s, message):
         self._command_announce_stager(s, message, extra=True)
 
     def _command_stager_new(self, s, message):
-        listener = get_listener(message[1:])[0]
-        self.init_stager(self._connect_socket(listener), listener, extra=True)
+        self.init_stager(self._connect_socket(message[1]), message[1],
+                         extra=True)
 
     def _command_confirmed(self, s, message):
         d = self._stager if s in self._stager else self._crawlers
         if not d[s].confirmed:
             d[s].confirmed = True
-            if message[1] == '0':
+            if message[1] == 0:
                 self._write_socket_message(s, 'CONFIRMED', 1)
 
     def _command_request_upload_permission(self, s, message):

@@ -40,12 +40,6 @@ def sample(l, n):
 def shuffle(l):
     return sample(l, len(l))
 
-def get_listener(l):
-    listeners = []
-    for i in range(0, len(l)-1, 2):
-        listeners.append((l[i], int(l[i+1])))
-    return listeners
-
 def check_time(old_time, max_time):
     return time.time() - old_time > max_time
 

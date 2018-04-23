@@ -60,13 +60,18 @@ class Job(threading.Thread):
         directory = self._directory + '_' + random_string(10)
         found = ArchiveUrls(directory, urls).run()
         if found is not False:
-            for filename in os.listdir(directory):
-                if filename.endswith('.warc.gz'):
-                    self._set_files.add((self._identifier, os.path.join(directory, filename)))
-            for url in urls:
-                self._set_urls.add((self._identifier, url))
-            for parenturl, url in found:
-                self._set_found.add((self._identifier, parenturl, url))
+            with self._set_files.lock:
+                for filename in os.listdir(directory):
+                    if filename.endswith('.warc.gz'):
+                        self._set_files.add((self._identifier,
+                                             os.path.join(directory,
+                                                          filename)))
+            with self._set_urls.lock:
+                for url in urls:
+                    self._set_urls.add((self._identifier, url))
+            with self._set_found.lock:
+                for parenturl, url in found:
+                    self._set_found.add((self._identifier, parenturl, url))
         else:
             for url in urls:
                 self._urls.add(url)
