@@ -60,7 +60,7 @@ class StagerServer(BaseServer):
         self._read_list.append(s)
         #print(s)
         self.add_stager(s, listener)
-        self._write_socket_message(s, 'ANNOUNCE_STAGING' \
+        self._write_socket_message(s, 'ANNOUNCE_STAGER' \
                                    + ('_EXTRA' if extra else ''),
                                    *self._address)
         return True
@@ -118,7 +118,7 @@ class StagerServer(BaseServer):
             stager = [self._listeners[l] for l in listeners]
         else:
             stager = sample(self._stager,
-                             max(0, MAX_STAGING - len(job.stager)))
+                             max(0, MAX_STAGER - len(job.stager)))
         for s in stager:
             job.add_stager(s)
             #job['stager'][s] = {
@@ -132,7 +132,7 @@ class StagerServer(BaseServer):
                 listeners = list(self._address)
                 for s_ in [s_ for s_ in job.stager if s_ != s]:
                     listeners.extend(s_.listener)
-                self._write_socket_message(s, 'NEW_JOB_STAGING', identifier,
+                self._write_socket_message(s, 'NEW_JOB_STAGER', identifier,
                                            *listeners)
             counter = sample(job.stager, 1)[0]
             self._write_socket_message(job.stager, 'JOB_SET_COUNTER',
@@ -200,7 +200,7 @@ class StagerServer(BaseServer):
         job = self._jobs[message[1]]
         job.started_crawl(s)
         if job.started_local_crawl:
-            self._write_socket_message(job.stager, 'JOB_STARTED_STAGING',
+            self._write_socket_message(job.stager, 'JOB_STARTED_STAGER',
                                        message[1])
 
     def _command_job_url(self, s, message):
@@ -234,7 +234,7 @@ class StagerServer(BaseServer):
         for s_ in sample(self._stager, int(message[1])):
             print(type(s_))
             if s_.listener not in listeners:
-                self._write_socket_message(s, 'ADD_STAGING',
+                self._write_socket_message(s, 'ADD_STAGER',
                                            *s_.listener)
 
     def _command_request_url_quota(self, s, message):
@@ -296,7 +296,7 @@ class StagerServer(BaseServer):
             for s_ in self._stager:
                 if s_ == s:
                     continue
-                self._write_socket_message(s, 'STAGING_NEW', *s_.listener)
+                self._write_socket_message(s, 'STAGER_NEW', *s_.listener)
         self._write_socket_message(s, 'CONFIRMED', 0)
 
     def _command_announce_stager_extra(self, s, message):

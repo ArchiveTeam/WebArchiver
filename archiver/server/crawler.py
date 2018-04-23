@@ -54,12 +54,12 @@ class CrawlerServer(BaseServer):
 
     def request_stager(self):
         if self.stager_needed > 0 and check_time(self._last_stager_request,
-                                                  REQUEST_STAGING_TIME):
+                                                  REQUEST_STAGER_TIME):
             message = []
             for s in self._stager:
                 message.extend(s.listener)
             self._write_socket_message(sample(self._stager, 1),
-                                       'REQUEST_STAGING', self.stager_needed,
+                                       'REQUEST_STAGER', self.stager_needed,
                                        *message)
             self._last_stager_request = time.time()
 
@@ -203,9 +203,9 @@ class CrawlerServer(BaseServer):
         listener = get_listener(message[1:])[0]
         r = self.add_stager(listener, extra=True)
 #        if r is None: TODO don't have to report this(?)
-#            self._write_socket_message(s, 'STAGING_ALREADY_ADDED', *listener)
+#            self._write_socket_message(s, 'STAGER_ALREADY_ADDED', *listener)
 #        elif r is true:
-#            self._write_socket_message(s, 'STAGING_ADDED', *listener)
+#            self._write_socket_message(s, 'STAGER_ADDED', *listener)
 
     def _command_upload_permission_granted(self, s, message):
         warc_file = self._upload_permissions[message[2]]
@@ -221,7 +221,7 @@ class CrawlerServer(BaseServer):
 
     @property
     def stager_needed(self):
-        n = MAX_STAGING - len(self._stager)
+        n = MAX_STAGER - len(self._stager)
         return 0 if n < 0 else n
 
 
