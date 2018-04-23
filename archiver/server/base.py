@@ -1,9 +1,9 @@
+import pickle
 import select
 import socket
 import struct
 
 from archiver.config import *
-from archiver.message import decode_message, encode_message
 
 
 class Node:
@@ -60,15 +60,17 @@ class BaseServer:
         message = b''
         while len(message) < message_length:
             message += s.recv(message_length - len(message))
-        message = decode_message(message)
-        print('received', [m[:30] for m in message], 'from', s.getpeername())
+        message = pickle.loads(message)
+        print('received', [m[:30] if type(m) is bytes else m for m in message],
+              'from', s.getpeername())
         self._process_message(s, message)
 
     def _write_socket(self, s):
         while len(self._write_queue[s]) > 0:
             message = self._write_queue[s].pop(0)
-            print('sending', message, 'to', s.getpeername())
-            message = encode_message(message)
+            print('sending', [m[:30] if type(m) is bytes else m for m in message],
+                  'to', s.getpeername())
+            message = pickle.dumps(message, protocol=pickle.HIGHEST_PROTOCOL)
             s.sendall(struct.pack('L', len(message)) + message)
         self._read_list.append(s)
         self._write_list.remove(s)
