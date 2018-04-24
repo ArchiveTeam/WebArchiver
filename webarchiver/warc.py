@@ -3,9 +3,9 @@ import os
 import time
 import urllib
 
-from archiver.config import *
-from archiver.request import get
-from archiver.utils import strip_url_scheme, sha512
+from webarchiver.config import *
+from webarchiver.request import get
+from webarchiver.utils import strip_url_scheme, sha512
 
 import warcio
 from warcio.archiveiterator import ArchiveIterator

@@ -2,11 +2,11 @@ import os
 import socket
 import time
 
-from archiver.config import *
-from archiver.server.job import StagerServerJob
-from archiver.server.base import BaseServer, Node
-from archiver.server.node import StagerNodeCrawler, StagerNodeStager
-from archiver.utils import check_time, sample, write_file
+from webarchiver.config import *
+from webarchiver.server.job import StagerServerJob
+from webarchiver.server.base import BaseServer, Node
+from webarchiver.server.node import StagerNodeCrawler, StagerNodeStager
+from webarchiver.utils import check_time, sample, write_file
 
 
 class StagerServer(BaseServer):

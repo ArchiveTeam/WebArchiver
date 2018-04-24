@@ -1,7 +1,7 @@
 import os
 import unittest
 
-from archiver.database import UrlDeduplicationDatabase
+from webarchiver.database import UrlDeduplicationDatabase
 
 
 class TestUrlDeduplicationDatabase(unittest.TestCase):

@@ -3,9 +3,9 @@ import shutil
 import subprocess
 import time
 
-from archiver.config import *
-from archiver.utils import sha512_file
-from archiver.warc import WarcFile
+from webarchiver.config import *
+from webarchiver.utils import sha512_file
+from webarchiver.warc import WarcFile
 
 
 class ArchiveUrls:

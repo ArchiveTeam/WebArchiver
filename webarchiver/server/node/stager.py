@@ -1,4 +1,4 @@
-from archiver.server.node.base import BaseNode
+from webarchiver.server.node.base import BaseNode
 
 
 class StagerNodeBase(BaseNode):

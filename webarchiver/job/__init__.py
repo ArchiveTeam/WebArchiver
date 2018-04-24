@@ -3,9 +3,10 @@ import string
 import threading
 import time
 
-from archiver.config import *
-from archiver.job.archive import ArchiveUrls
-from archiver.utils import *
+from webarchiver.config import *
+from webarchiver.job.archive import ArchiveUrls
+from webarchiver.utils import *
+
 
 def initial_urls(url, list_):
     if url is None:

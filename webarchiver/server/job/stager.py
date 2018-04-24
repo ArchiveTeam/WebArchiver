@@ -1,8 +1,8 @@
 import time
 
-from archiver.config import *
-from archiver.server.base import Node
-from archiver.utils import sample, split_set
+from webarchiver.config import *
+from webarchiver.server.base import Node
+from webarchiver.utils import sample, split_set
 
 
 class StagerServerJob:

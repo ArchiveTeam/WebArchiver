@@ -3,13 +3,13 @@ import os
 import socket
 import time
 
-from archiver.config import *
-from archiver.database import UrlDeduplicationDatabase
-from archiver.server.base import BaseServer, Node
-from archiver.server.job import CrawlerServerJob
-from archiver.server.node import CrawlerNode
-from archiver.set import LockedSet
-from archiver.utils import check_time, key_lowest_value, sample
+from webarchiver.config import *
+from webarchiver.database import UrlDeduplicationDatabase
+from webarchiver.server.base import BaseServer, Node
+from webarchiver.server.job import CrawlerServerJob
+from webarchiver.server.node import CrawlerNode
+from webarchiver.set import LockedSet
+from webarchiver.utils import check_time, key_lowest_value, sample
 
 
 class CrawlerServer(BaseServer):

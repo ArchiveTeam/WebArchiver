@@ -4,7 +4,7 @@ import select
 import socket
 import struct
 
-from archiver.config import *
+from webarchiver.config import *
 
 
 class Node:

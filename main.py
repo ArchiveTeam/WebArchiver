@@ -2,7 +2,7 @@ import argparse
 import os
 import sys
 
-from archiver.config import *
+from webarchiver.config import *
 
 
 def main():
@@ -28,11 +28,11 @@ def main():
                         'and 6000 will be chosen.', type=int)
     arguments = parser.parse_args(sys.argv[1:])
     if arguments.sort == 'crawler':
-        from archiver.server import CrawlerServer
+        from webarchiver.server import CrawlerServer
         server = CrawlerServer(arguments.host, arguments.port,
                                arguments.stager_host, arguments.stager_port)
     elif arguments.sort == 'stager':
-        from archiver.server import StagerServer
+        from webarchiver.server import StagerServer
         server = StagerServer(arguments.host, arguments.port,
                               arguments.stager_host, arguments.stager_port)
     server.run()

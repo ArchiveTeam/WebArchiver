@@ -1,7 +1,7 @@
 import time
 
-from archiver.database import UrlDeduplicationDatabase
-from archiver.job import Job
+from webarchiver.database import UrlDeduplicationDatabase
+from webarchiver.job import Job
 
 
 class CrawlerServerJob:
