@@ -1,4 +1,5 @@
 import pickle
+import random
 import select
 import socket
 import struct
@@ -16,8 +17,9 @@ class Node:
 
 
 class BaseServer:
-    def __init__(self, ip=None, port=None):
-        self._address = (ip or socket.getfqdn(), port or DATA_PORT)
+    def __init__(self, host=None, port=None):
+        self._address = (host or socket.getfqdn(),
+                         port or random.randrange(3000, 6000))
         self._read_list = []
         self._write_list = []
         self._error_list = []

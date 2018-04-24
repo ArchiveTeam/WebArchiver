@@ -1,5 +1,4 @@
 import os
-import random
 import socket
 import time
 
@@ -11,16 +10,17 @@ from archiver.utils import check_time, sample, write_file
 
 
 class StagerServer(BaseServer):
-    def __init__(self, ip=None, port=None):
-        self._port = random.randrange(3000, 6000)
-        super().__init__(socket.getfqdn(), self._port)
+    def __init__(self, host=None, port=None, stager_host=None,
+                 stager_port=None):
+        super().__init__(host, port)
         self._data_sockets = []
         self._urls = None#Urls()
         self._stager = {}
         self._listeners = {}
         self._crawlers = {}
-        if ip is not None and port is not None:
-            self.init_stager(self._connect_socket((ip, port)), (ip, port))
+        if stager_host is not None and stager_port is not None:
+            self.init_stager(self._connect_socket((stager_host, stager_port)),
+                             (stager_host, stager_port))
         self._jobs = {}
         self._last_jobs_check = 0
         self._used_space = 0
@@ -30,8 +30,8 @@ class StagerServer(BaseServer):
     def _run_round(self):
         super()._run_round()
         self.ping()
-        if os.path.isfile('starttest' + str(self._port)) and len(self._jobs) == 0:
-            with open('starttest' + str(self._port), 'r') as f:
+        if os.path.isfile('starttest' + str(self._address[1])) and len(self._jobs) == 0:
+            with open('starttest' + str(self._address[1]), 'r') as f:
                 self.create_job('testjob', [s.strip() for s in f.read().splitlines()])
         for job in self._jobs:
             #for s in self._jobs[job_]['stager']:

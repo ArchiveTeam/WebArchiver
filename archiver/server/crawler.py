@@ -1,6 +1,5 @@
 import functools
 import os
-import random
 import socket
 import time
 
@@ -14,11 +13,11 @@ from archiver.utils import check_time, key_lowest_value, sample
 
 
 class CrawlerServer(BaseServer):
-    def __init__(self, ip=None, port=None):
-        self._port = random.randrange(3000, 6000)
-        super().__init__(socket.getfqdn(), self._port)
+    def __init__(self, host=None, port=None, stager_host=None,
+                 stager_port=None):
+        super().__init__(host, port)
         self._stager = {}
-        self.add_stager((ip, port))
+        self.add_stager((stager_host, stager_port))
         self._jobs = {}
         self._upload_permissions = UploadPermissions()
         self._filenames_set = LockedSet()

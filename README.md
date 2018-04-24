@@ -14,32 +14,32 @@ To run WebArchiver:
 ### Options
 
 The following options are available for setting up a server in a network or creating a network.
+* `-h`
+  `--help`
 * `-S SORT`
-`--sort=SORT`: set the sort of server to be created. `SORT` can be `stager` for a stager server or `crawling` for a crawling server.
+  `--sort=SORT`: The sort of server to be created. `SORT` can be `stager` for a stager or `crawler` for a crawler. This argument is required.
+* `-SH HOST`
+  `--stager-host=HOST`: The host of the stager to connect to. This should not be set if this is the first stager.
+* `-SP PORT`
+  `--stager-port=PORT`: The port of the stager to connect to. This should not be set if this is the first stager.
 * `-H HOST`
-`--host=HOST`: set the host of the stager server to connect to. `HOST` should can be the host or an IP. Should not be set if a network is being created.
+  `--host=HOST`: The host to use for communication. If not set the scripts will try to determine the host.
 * `-P PORT`
-`--port=PORT`: set the port of the stager server to connect to. `PORT` should be a number. Should not be set if a network is being created.
+  `--port=PORT`: The port to use for communication. If not set a random port between 3000 and 6000 will be chosen.
 
 ## Servers
 
-WebArchiver consists of stager and crawling servers. Stager servers divide the work among crawlers and other stager servers.
+WebArchiver consists of stagers and crawlers. Stagers divide the work among crawlers and other stagers.
 
-Settings for a server can be set by running
-```bash
-python3 settings.py [SETTINGS]
-```
-if no `[SETTINGS]` are given the script will ask for the change in settings. New settings are checked before being passed to the server. Be aware, the effects of a new setting cannot be undone.
+### Stager
 
-### Stager server
+The stager distributes new jobs and URLs and received WARCs from crawlers.
 
-The stager server distributes new jobs and URLs and received WARCs from crawlers.
+Each stager can get a new job. The job can be issued to it by creating a file in directory `new-jobs`. If the file has extension `.ready` it is picked up by the stager and started.
 
-Each stager server can get a new job. The job can be issued to it by creating a file in directory `new-jobs`. If the file has extension `.ready` it is picked up by the stager server and started.
+### Crawling
 
-### Crawling server
-
-The crawling server received URLs from the stager server it is connected to, crawls these URLs and send back the WARC and new found URLs.
+The crawler received URLs from the stager it is connected to, crawls these URLs and send back the WARC and new found URLs.
 
 ## The protocol
 
