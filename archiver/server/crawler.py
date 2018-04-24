@@ -114,7 +114,7 @@ class CrawlerServer(BaseServer):
                 finished.add((identifier, url))
                 job.delete_url_stager(url)
                 print(self._jobs)
-        self._finished_urls_set.difference_update(finished)
+            self._finished_urls_set.difference_update(finished)
 
     def found_urls(self):
         finished = set()
@@ -126,7 +126,7 @@ class CrawlerServer(BaseServer):
                 stager = sample(self._jobs[identifier].stager, 1)[0]
                 self._write_socket_message(stager, 'JOB_URL_DISCOVERED',
                                            identifier, parenturl, url)
-        self._found_urls_set.difference_update(finished)
+            self._found_urls_set.difference_update(finished)
 
     def request_url_quota(self):
         if check_time(self._last_url_quota, URL_QUOTA_TIME):
