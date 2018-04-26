@@ -35,17 +35,11 @@ WebArchiver consists of stagers and crawlers. Stagers divide the work among craw
 
 The stager distributes new jobs and URLs and received WARCs from crawlers.
 
-Each stager can get a new job. The job can be issued to it by creating a file in directory `new-jobs`. If the file has extension `.ready` it is picked up by the stager and started.
-
 ### Crawling
 
 The crawler received URLs from the stager it is connected to, crawls these URLs and send back the WARC and new found URLs.
 
 ## The protocol
 
-WebArchiver communicates over TCP using its own protocol. The protocol is explained here.
-
-The protocol has methods implemented. Data that comes with it is encoded in base64 and joined with a semicolon. On the receiving side data is split on the semicolon, decoded and processed.
-
-Every piece of data is prepended with length. This length is an unsigned long. The length of the data is used to determine when all data is transferred.
+TODO
 
