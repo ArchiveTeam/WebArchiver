@@ -129,7 +129,8 @@ class StagerServer(BaseServer):
             for s in job.stager:
                 self._write_socket_message(s, 'NEW_JOB_STAGER', identifier,
                                            self._address,
-                                           *[d for d in job.stager if d != s])
+                                           *[d.listener for d in job.stager
+                                             if d != s])
             counter = sample(job.stager, 1)[0]
             self._write_socket_message(job.stager, 'JOB_SET_COUNTER',
                                        identifier, counter.listener)
