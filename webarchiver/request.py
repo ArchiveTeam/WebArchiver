@@ -1,5 +1,6 @@
-import requests
 import time
+
+import requests
 
 
 def get(url, status_codes=[200], content_length=0, max_tries=1,

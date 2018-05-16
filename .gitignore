@@ -8,3 +8,4 @@ testjob*
 *.db
 warc/
 jobs/
+*.pkl
