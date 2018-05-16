@@ -24,10 +24,11 @@ def main():
                            dict(parser[parser.sections()[0]]),
                            sys.argv[1])
     outname = os.path.join(NEW_JOBS_DIR, '{}.pkl'.format(settings.identifier))
-    with open(outname, 'wb') as f:
+    with open(outname + '.dumping', 'wb') as f:
         pickle.dump(settings, f, protocol=pickle.HIGHEST_PROTOCOL)
     os.rename(sys.argv[1], sys.argv[1] + '.processed')
-    print('Found {} URLs.'.format(settings.urls))
+    os.rename(outname + '.dumping', outname)
+    print('Found {} URLs.'.format(len(settings.urls)))
     print('Create job file in {}.'.format(outname))
     print('Exiting.')
 
