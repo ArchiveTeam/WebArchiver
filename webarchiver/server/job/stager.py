@@ -18,8 +18,6 @@ class StagerServerJob:
         self.stager = {}
         self.backup = {}
 
-        self.url_rate = 2
-
     def add_crawler(self, s):
         if s in self.crawlers:
             return None
@@ -97,6 +95,10 @@ class StagerServerJob:
         self.counter = time.time()
 
     @property
+    def rate(self):
+        return self.settings.rate
+
+    @property
     def identifier(self):
         return self.settings.identifier
 
@@ -132,7 +134,7 @@ class StagerServerJob:
         assert self.is_counter
         old = self.counter
         self.counter = time.time()
-        return int((self.counter-old)*self.url_rate)
+        return int((self.counter-old)*self.rate)
 
     @property
     def is_counter(self):
