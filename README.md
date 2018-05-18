@@ -13,9 +13,10 @@ WebArchiver has the following dependencies:
 Install these by running `pip install warcio requests` or use `pip3` in case your default Python version is Python 2.
 
 To run WebArchiver:
-1. `git clone` this repository.
-2. `cd` into it.
-3. Run `python main.py` with options or use `python3` is your default Python version is Python 2.
+1. `git clone` this repository,
+2. `cd` into it,
+3. Compile wget-lua using `(cd crawl; ./get-wget-lua.sh)`,
+4. Run `python main.py` with options or use `python3` is your default Python version is Python 2.
 
 ### Options
 
