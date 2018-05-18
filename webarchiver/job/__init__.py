@@ -1,3 +1,4 @@
+import pickle
 import os
 import string
 import threading
@@ -15,6 +16,19 @@ def initial_urls(url, list_):
         return set(url)
     else:
         return set([url])
+
+
+def new_jobs():
+    while True:
+        if os.path.isdir(NEW_JOBS_DIR):
+            for filename in os.listdir(NEW_JOBS_DIR):
+                if not filename.endswith('.pkl'):
+                    continue
+                filename_ = os.path.join(NEW_JOBS_DIR, filename)
+                with open(filename_, 'rb') as f:
+                    yield pickle.load(f)
+                os.rename(filename_, filename_ + '.loaded')
+        time.sleep(10)
 
 
 class Job(threading.Thread):

@@ -140,10 +140,10 @@ class CrawlerServer(BaseServer):
             self._write_socket_message(sample(self._jobs[job].stager, 1)[0],
                                        'REQUEST_URL_QUOTA', job)
 
-    def create_job(self, identifier):
-        if identifier in self._jobs:
+    def create_job(self, settings):
+        if settings.identifier in self._jobs:
             return None
-        self._jobs[identifier] = CrawlerServerJob(identifier,
+        self._jobs[settings.identifier] = CrawlerServerJob(settings,
                                                   self._filenames_set,
                                                   self._finished_urls_set,
                                                   self._found_urls_set)
@@ -181,8 +181,9 @@ class CrawlerServer(BaseServer):
 
     def _command_new_job_crawl(self, s, message):
         self.create_job(message[1])
-        self.job_add_stager(message[1], s)
-        self._write_socket_message(s, 'JOB_CRAWL_CONFIRMED', message[1])
+        self.job_add_stager(message[1].identifier, s)
+        self._write_socket_message(s, 'JOB_CRAWL_CONFIRMED',
+                                   message[1].identifier)
 
     def _command_job_url_crawl(self, s, message):
         self.job_add_url(s, message[1], message[2])

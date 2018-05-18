@@ -6,11 +6,11 @@ from webarchiver.utils import sample, split_set
 
 
 class StagerServerJob:
-    def __init__(self, identifier, initial_urls=set(), initial_stager=None):
-        self.identifier = identifier
+    def __init__(self, settings, initial, initial_stager=None):
+        self.settings = settings
+        self.initial = initial
         self.initial_stager = initial_stager
-        self.initial_urls = set(initial_urls)
-        self.discovered_urls = set(initial_urls)
+        self.discovered_urls = set(self.initial_urls if self.initial else [])
         self.current_urls = set()
         self.finished = False
 
@@ -95,6 +95,16 @@ class StagerServerJob:
 
     def set_as_counter(self):
         self.counter = time.time()
+
+    @property
+    def identifier(self):
+        return self.settings.identifier
+
+    @property
+    def initial_urls(self):
+        if self.initial:
+            return self.settings.urls
+        return ()
 
     @property
     def started(self):

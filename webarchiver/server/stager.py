@@ -1,8 +1,10 @@
 import os
 import socket
+import threading
 import time
 
 from webarchiver.config import *
+from webarchiver.job import new_jobs
 from webarchiver.server.job import StagerServerJob
 from webarchiver.server.base import BaseServer, Node
 from webarchiver.server.node import StagerNodeCrawler, StagerNodeStager
@@ -27,6 +29,10 @@ class StagerServer(BaseServer):
         self._uploading = {}
         self.test = 0
 
+        self._job_checker = threading.Thread(target=self._get_jobs)
+        self._job_checker.daemon = True
+        self._job_checker.start()
+
     def _run_round(self):
         super()._run_round()
         self.ping()
@@ -43,6 +49,10 @@ class StagerServer(BaseServer):
                 self.start_job(job)
                 self.test = 1
         self.check_jobs()
+
+    def _get_jobs(self):
+        for job in new_jobs():
+            self.create_job(job)
 
     def _read_socket(self, s):
         if s == self._socket:
@@ -95,17 +105,16 @@ class StagerServer(BaseServer):
         self._write_socket_message(crawler, 'JOB_URL_CRAWL', message[1],
                                    message[2])
 
-    def create_job(self, identifier, urls=set(), initial_stager=None,
-                   initial=True):
-        if identifier in self._jobs:
+    def create_job(self, settings, initial_stager=None, initial=True):
+        if settings.identifier in self._jobs:
             return None
         if initial is True and initial_stager is None:
             initial_stager = self._socket
-        self._jobs[identifier] = StagerServerJob(identifier, urls,
-                                                  initial_stager)
+        self._jobs[settings.identifier] = StagerServerJob(settings, initial,
+                                                          initial_stager)
         if initial:
-            self.job_add_stager(identifier)
-        self.job_add_crawler(identifier)
+            self.job_add_stager(settings.identifier)
+        self.job_add_crawler(settings.identifier)
         return True
 
     def job_add_stager(self, identifier, listeners=None, initial=True):
@@ -124,7 +133,7 @@ class StagerServer(BaseServer):
             #    'started': False
             #}
             #job['backup'][self._stager[s]['listener']] = set()
-        self._write_socket_message(stager, 'NEW_JOB', identifier)
+        self._write_socket_message(stager, 'NEW_JOB', job.settings)
         if initial:
             for s in job.stager:
                 self._write_socket_message(s, 'NEW_JOB_STAGER', identifier,
@@ -143,9 +152,11 @@ class StagerServer(BaseServer):
     def job_add_crawler(self, identifier):
         if identifier not in self._jobs:
             return False
+        job = self._jobs[identifier]
         for s in self._crawlers:
-            self._jobs[identifier].add_crawler(s)
-        self._write_socket_message(self._crawlers, 'NEW_JOB_CRAWL', identifier)
+            job.add_crawler(s)
+        self._write_socket_message(self._crawlers, 'NEW_JOB_CRAWL',
+                                   job.settings)
         return True
 
     def start_job(self, identifier):

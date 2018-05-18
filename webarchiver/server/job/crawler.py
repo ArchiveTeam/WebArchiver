@@ -5,17 +5,17 @@ from webarchiver.job import Job
 
 
 class CrawlerServerJob:
-    def __init__(self, identifier, filenames_set, finished_urls_set,
+    def __init__(self, settings, filenames_set, finished_urls_set,
                  found_urls_set):
+        self.settings = settings
         self.stager = []
         self.started = False
         self.received_url_quota = time.time()
-        self._identifier = identifier
-        self._job = Job(identifier, filenames_set, finished_urls_set,
-                           found_urls_set)
+        self._job = Job(self.identifier, filenames_set, finished_urls_set,
+                        found_urls_set)
         self._urls = {}
-        self._url_database = UrlDeduplicationDatabase(self._identifier,
-            'crawler_' + self._identifier)
+        self._url_database = UrlDeduplicationDatabase(self.identifier,
+            'crawler_' + self.identifier)
 
     def add_stager(self, s):
         if s in self.stager:
@@ -54,4 +54,8 @@ class CrawlerServerJob:
     @property
     def is_started(self):
         return self.started or self._job.ident
+
+    @property
+    def identifier(self):
+        return self.settings.identifier
 
