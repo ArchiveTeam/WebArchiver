@@ -35,13 +35,13 @@ The following options are available for setting up a server in a network or crea
 
 ### Add a job
 
-A crawl of a website or a list of URLs is called a job. To add a job a configuration file needs to be processed and added to the network. The configuration file has the identifier and the following possible options.
-* `url`: An URL to crawl.
+A crawl of a website or a list of URLs is called a job. To add a job a configuration file needs to be processed and added to WebArchiver. The configuration file has the identifier and the following possible options.
+* `url`: URL to crawl.
 * `urls file`: Filename of a file containing a list of URLs.
-* `urls url`: URL to a webpage contaiing a raw list of URLs.
-* `rate`: URL crawl rate in URL per second.
-* `regex`: Regex a discovered URL should match.
-* `depth`: Depth to crawl.
+* `urls url`: URL to a webpage containing a raw list of URLs.
+* `rate`: URL crawl rate in URLs per second.
+* `regex`: Regular expression a discovered URL should match.
+* `depth`: Maximum depth to crawl.
 
 For all settings except `rate` and `depth` multiple entries are possible.
 
@@ -58,7 +58,7 @@ regex = https?://[^/]+\.london
 depth = 3
 ```
 
-To process the configuration file and add it to WebArchiver, run `python add_job.py FILENAME`, where `FILENAME` if the name of the configuration file.
+To process the configuration file and add it to WebArchiver, run `python add_job.py FILENAME`, where `FILENAME` is the name of the configuration file.
 
 ## Servers
 
