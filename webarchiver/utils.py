@@ -7,6 +7,10 @@ import string
 import time
 
 
+def random_string(l):
+    return ''.join(random.choice(string.ascii_letters + string.digits, l))
+
+
 def strip_url_scheme(url):
     return re.sub('^https?://', '', url)
 

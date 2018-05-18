@@ -2,6 +2,7 @@ import os
 import sys
 
 from webarchiver.request import get
+from webarchiver.utils import random_string
 
 
 class JobSettingsException(LookupError):
@@ -10,7 +11,7 @@ class JobSettingsException(LookupError):
 
 class JobSettings:
     def __init__(self, identifier, config, location):
-        self.identifier = identifier
+        self.identifier = '{}-{}'.format(identifier, random_string(8))
         self.config = config
         self.regex = tuple(self.config['regex'].split('\n'))
         self._add_setting('rate', sys.maxsize)
