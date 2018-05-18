@@ -9,3 +9,4 @@ testjob*
 warc/
 jobs/
 *.pkl
+*.db*
