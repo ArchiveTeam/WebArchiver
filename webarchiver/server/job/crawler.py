@@ -1,3 +1,4 @@
+import re
 import time
 
 from webarchiver.database import UrlDeduplicationDatabase
@@ -50,6 +51,12 @@ class CrawlerServerJob:
 
     def archived_url(self, url):
         return self._url_database.has_url(url)
+
+    def allowed_url(self, url):
+        for regex in self.settings.regex:
+            if re.search(regex, url):
+                return True
+        return False
 
     @property
     def is_started(self):

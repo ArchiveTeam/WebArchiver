@@ -123,6 +123,8 @@ class CrawlerServer(BaseServer):
                 finished.add((identifier, parenturl, url))
                 if self._jobs[identifier].archived_url(url):
                     continue
+                if not self._job[identifier].allowed_url(url):
+                    continue
                 stager = sample(self._jobs[identifier].stager, 1)[0]
                 self._write_socket_message(stager, 'JOB_URL_DISCOVERED',
                                            identifier, parenturl, url)
