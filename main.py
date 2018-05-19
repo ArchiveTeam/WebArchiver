@@ -5,9 +5,17 @@ import sys
 from webarchiver.config import *
 
 
-def main():
+def check():
     if not os.path.isdir(CRAWLS_DIRECTORY):
+        print('{} not found, creating.'.format(CRAWLS_DIRECTORY))
         os.makedirs(CRAWLS_DIRECTORY)
+    if not os.path.isfile(WGET_LUA_FILENAME):
+        print('{0} not found. See the README for building {0}.' \
+              .format(WGET_LUA_FILENAME))
+        sys.exit(1)
+
+
+def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('-S', '--sort',
                         help='The sort of server to be created.',
@@ -38,5 +46,6 @@ def main():
     server.run()
 
 if __name__ == '__main__':
+    check()
     main()
 
