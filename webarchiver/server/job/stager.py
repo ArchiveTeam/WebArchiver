@@ -13,7 +13,7 @@ class StagerServerJob:
         self.initial_stager = initial_stager
         self.discovered_urls = init_urls(self.identifier, self.initial_urls) \
             if self.initial else {}
-        self.current_urls = set()
+        self.current_urls = {}
         self.finished = False
 
         self.crawlers = {}
@@ -30,10 +30,10 @@ class StagerServerJob:
 
     def add_stager(self, s):
         self.stager[s] = StagerServerJobStager(s)
-        self.backup[s.listener] = set()
+        self.backup[s.listener] = {}
 
     def backup_url(self, s, urlconfig):
-        self.backup[s.listener].add(urlconfig)
+        self.backup[s.listener][urlconfig.url] = urlconfig
 
     def share_urls(self):
         if len(self.discovered_urls) == 0:
@@ -59,21 +59,21 @@ class StagerServerJob:
 
     def add_url_crawler(self, urlconfig):
         crawler = sample(self.crawlers, 1)[0]
-        self.current_urls.add(urlconfig)
-        self.crawlers[crawler].add_url(urlconfig)
+        self.current_urls[urlconfig.url] = urlconfig
+        self.crawlers[crawler].add_url(urlconfig.url)
         return crawler
 
     def add_url(self, urlconfig):
         self.discovered_urls[urlconfig.url] = urlconfig
 
-    def finish_url(self, s, urlconfig, listener):
+    def finish_url(self, s, url, listener):
         if listener in self.backup:
             #job['urls'].remove(url) #TODO should this be currently crawling or currently using
-            self.backup[listener].discard(urlconfig)
+            del self.backup[listener][url]
         else:
             print(self.current_urls)
-            self.current_urls.remove(urlconfig)
-            self.crawlers[s].urls.remove(urlconfig)
+            del self.current_urls[url]
+            self.crawlers[s].remove_url(url)
 
     def confirmed(self, s, i):
         if  self.stager[s].confirmed:
@@ -161,8 +161,11 @@ class StagerServerJobCrawler:
         self.started = False
         self.urls = set()
 
-    def add_url(self, urlconfig):
-        self.urls.add(urlconfig)
+    def add_url(self, url):
+        self.urls.add(url)
+
+    def remove_url(self, url):
+        self.urls.remove(url)
 
 
 class StagerServerJobStager:

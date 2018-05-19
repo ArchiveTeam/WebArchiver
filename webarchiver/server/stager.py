@@ -219,7 +219,7 @@ class StagerServer(BaseServer):
         self._jobs[message[1].job_identifier].backup_url(s, message[1])
 
     def _command_job_url_finished(self, s, message):
-        self._jobs[message[1].job_identifier].finish_url(s, message[1], message[2])
+        self._jobs[message[1]].finish_url(s, message[2], message[3])
 
     def _command_job_url_discovered(self, s, message):
         # TODO check if URL should be crawled

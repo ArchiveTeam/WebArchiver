@@ -90,7 +90,7 @@ class Job(threading.Thread):
                 for parenturl, url in found:
                     self._set_found.add(
                         UrlConfig(self._identifier, url,
-                                  self._urls_depths[parenturl]+1, parenturl)
+                                  urls_depths[parenturl]+1, parenturl)
                     )
         else:
             self._urls.update(urls)

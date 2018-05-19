@@ -109,7 +109,8 @@ class CrawlerServer(BaseServer):
                 job = self._jobs[identifier]
                 job.finished_url(urlconfig)
                 self._write_socket_message(job.stager, 'JOB_URL_FINISHED',
-                                           urlconfig,
+                                           urlconfig.job_identifier,
+                                           urlconfig.url,
                                            job.get_url_stager(urlconfig).listener)
                 finished.add(urlconfig)
                 job.delete_url_stager(urlconfig)
@@ -124,8 +125,10 @@ class CrawlerServer(BaseServer):
                 identifier = urlconfig.job_identifier
                 if self._jobs[identifier].archived_url(urlconfig):
                     continue
-                if not self._job[identifier].allowed_url(urlconfig):
+                print(urlconfig.url, urlconfig.parent_url, urlconfig.depth)
+                if not self._jobs[identifier].allowed_url(urlconfig):
                     continue
+                print('passed', urlconfig.url, urlconfig.parent_url, urlconfig.depth)
                 stager = sample(self._jobs[identifier].stager, 1)[0]
                 self._write_socket_message(stager, 'JOB_URL_DISCOVERED',
                                            urlconfig)

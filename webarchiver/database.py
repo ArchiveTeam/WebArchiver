@@ -30,7 +30,7 @@ class UrlDeduplicationDatabase(BaseDatabase):
 
     def insert(self, urlconfig):
         # TODO assertions
-        self._cur.execute('INSERT INTO {} VALUES (?)'.format(self._name), 
+        self._cur.execute('INSERT INTO {} VALUES (?,?,?)'.format(self._name), 
                           (urlconfig.url, urlconfig.depth,
                            urlconfig.parent_url \
                            if urlconfig.parent_url is not None else ''))
