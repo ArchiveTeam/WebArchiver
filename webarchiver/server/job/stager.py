@@ -2,6 +2,7 @@ import time
 
 from webarchiver.config import *
 from webarchiver.server.base import Node
+from webarchiver.url import init_urls
 from webarchiver.utils import sample, split_set
 
 
@@ -10,7 +11,8 @@ class StagerServerJob:
         self.settings = settings
         self.initial = initial
         self.initial_stager = initial_stager
-        self.discovered_urls = set(self.initial_urls if self.initial else [])
+        self.discovered_urls = init_urls(self.identifier, self.initial_urls) \
+            if self.initial else {}
         self.current_urls = set()
         self.finished = False
 
@@ -30,18 +32,18 @@ class StagerServerJob:
         self.stager[s] = StagerServerJobStager(s)
         self.backup[s.listener] = set()
 
-    def backup_url(self, s, url):
-        self.backup[s.listener].add(url)
+    def backup_url(self, s, urlconfig):
+        self.backup[s.listener].add(urlconfig)
 
     def share_urls(self):
         if len(self.discovered_urls) == 0:
             return None
         url_lists = split_set(self.discovered_urls, len(self.stager)+1)
         backups = sample(self.stager, MAX_BACKUPS)
-        for url in url_lists.pop():
+        for urlconfig in url_lists.pop():
             #self.add_url_crawler(url)
-            yield url, None, backups
-            self.discovered_urls.remove(url)
+            yield urlconfig, None, backups
+            del self.discovered_urls[urlconfig.url]
         for s in self.stager:
             backups = sample(['this'] + [s_ for s_ in self.stager if s_ != s],
                              MAX_BACKUPS) # FIXME make pretty
@@ -49,29 +51,29 @@ class StagerServerJob:
             if add_current:
                 print('backup to self')
                 backups.remove('this')
-            for url in url_lists.pop():
-                yield url, s, backups
+            for urlconfig in url_lists.pop():
+                yield urlconfig, s, backups
                 if add_current:
-                    self.backup_url(s, url)
-                self.discovered_urls.remove(url)
+                    self.backup_url(s, urlconfig)
+                del self.discovered_urls[urlconfig.url]
 
-    def add_url_crawler(self, url):
+    def add_url_crawler(self, urlconfig):
         crawler = sample(self.crawlers, 1)[0]
-        self.current_urls.add(url)
-        self.crawlers[crawler].add_url(url)
+        self.current_urls.add(urlconfig)
+        self.crawlers[crawler].add_url(urlconfig)
         return crawler
 
-    def add_url(self, url):
-        self.discovered_urls.add(url)
+    def add_url(self, urlconfig):
+        self.discovered_urls[urlconfig.url] = urlconfig
 
-    def finish_url(self, s, url, listener):
+    def finish_url(self, s, urlconfig, listener):
         if listener in self.backup:
             #job['urls'].remove(url) #TODO should this be currently crawling or currently using
-            self.backup[listener].discard(url)
+            self.backup[listener].discard(urlconfig)
         else:
             print(self.current_urls)
-            self.current_urls.remove(url)
-            self.crawlers[s].urls.remove(url)
+            self.current_urls.remove(urlconfig)
+            self.crawlers[s].urls.remove(urlconfig)
 
     def confirmed(self, s, i):
         if  self.stager[s].confirmed:
@@ -159,8 +161,8 @@ class StagerServerJobCrawler:
         self.started = False
         self.urls = set()
 
-    def add_url(self, url):
-        self.urls.add(url)
+    def add_url(self, urlconfig):
+        self.urls.add(urlconfig)
 
 
 class StagerServerJobStager:

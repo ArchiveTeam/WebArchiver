@@ -103,31 +103,32 @@ class CrawlerServer(BaseServer):
     def finish_urls(self):
         finished = set()
         with self._finished_urls_set.lock:
-            for identifier, url in self._finished_urls_set:
+            for urlconfig in self._finished_urls_set:
                 print(self._jobs)
-                #print(identifier, url)
+                identifier = urlconfig.job_identifier
                 job = self._jobs[identifier]
-                job.finished_url(url)
+                job.finished_url(urlconfig)
                 self._write_socket_message(job.stager, 'JOB_URL_FINISHED',
-                                           identifier, url,
-                                           job.get_url_stager(url).listener)
-                finished.add((identifier, url))
-                job.delete_url_stager(url)
+                                           urlconfig,
+                                           job.get_url_stager(urlconfig).listener)
+                finished.add(urlconfig)
+                job.delete_url_stager(urlconfig)
                 print(self._jobs)
             self._finished_urls_set.difference_update(finished)
 
     def found_urls(self):
         finished = set()
         with self._found_urls_set.lock:
-            for identifier, parenturl, url in self._found_urls_set:
-                finished.add((identifier, parenturl, url))
-                if self._jobs[identifier].archived_url(url):
+            for urlconfig in self._found_urls_set:
+                finished.add(urlconfig)
+                identifier = urlconfig.job_identifier
+                if self._jobs[identifier].archived_url(urlconfig):
                     continue
-                if not self._job[identifier].allowed_url(url):
+                if not self._job[identifier].allowed_url(urlconfig):
                     continue
                 stager = sample(self._jobs[identifier].stager, 1)[0]
                 self._write_socket_message(stager, 'JOB_URL_DISCOVERED',
-                                           identifier, parenturl, url)
+                                           urlconfig)
             self._found_urls_set.difference_update(finished)
 
     def request_url_quota(self):
@@ -161,10 +162,10 @@ class CrawlerServer(BaseServer):
         self._jobs[identifier].add_stager(s)
         return True
 
-    def job_add_url(self, s, identifier, url):
-        if identifier not in self._jobs:
+    def job_add_url(self, s, urlconfig):
+        if urlconfig.job_identifier not in self._jobs:
             return False
-        self._jobs[identifier].add_url(s, url)
+        self._jobs[urlconfig.job_identifier].add_url(s, urlconfig)
         return True
 
     def _command_pong(self, s, message):
@@ -188,7 +189,7 @@ class CrawlerServer(BaseServer):
                                    message[1].identifier)
 
     def _command_job_url_crawl(self, s, message):
-        self.job_add_url(s, message[1], message[2])
+        self.job_add_url(s, message[1])
 
     def _command_job_start_crawl(self, s, message):
         self.start_job(message[1])

@@ -24,12 +24,16 @@ class UrlDeduplicationDatabase(BaseDatabase):
     def __init__(self, path, name):
         super().__init__(path, 'OFF', 'WAL')
         self._name = name
-        self._cur.execute('CREATE TABLE {} (url TEXT)'.format(self._name))
+        self._cur.execute('CREATE TABLE {} ' \
+                          '(url TEXT, depth INTEGER, parent TEXT)' \
+                          .format(self._name))
 
-    def insert(self, url):
+    def insert(self, urlconfig):
         # TODO assertions
         self._cur.execute('INSERT INTO {} VALUES (?)'.format(self._name), 
-                          (url,))
+                          (urlconfig.url, urlconfig.depth,
+                           urlconfig.parent_url \
+                           if urlconfig.parent_url is not None else ''))
 
     def has_url(self, url):
         self._cur.execute('SELECT 1 FROM {} WHERE url=? LIMIT 1'

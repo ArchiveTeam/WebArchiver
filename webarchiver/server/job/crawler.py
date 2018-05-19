@@ -23,21 +23,21 @@ class CrawlerServerJob:
             return None
         self.stager.append(s)
 
-    def add_url(self, s, url):
-        if self.finished_url(url):
+    def add_url(self, s, urlconfig):
+        if self.archived_url(urlconfig):
             return None
-        self._urls[url] = s
-        self._job.add_url(url)
+        self._urls[urlconfig] = s
+        self._job.add_url(urlconfig)
 
     def increase_url_quota(self, i):
         self._received_url_quota = time.time()
         self._job.increase_url_quota(i)
 
-    def get_url_stager(self, url):
-        return self._urls[url]
+    def get_url_stager(self, urlconfig):
+        return self._urls[urlconfig]
 
-    def delete_url_stager(self, url):
-        del self._urls[url]
+    def delete_url_stager(self, urlconfig):
+        del self._urls[urlconfig]
 
     def start(self):
         if self.is_started:
@@ -46,17 +46,25 @@ class CrawlerServerJob:
         self.started = True
         return True
 
-    def finished_url(self, url):
-        self._url_database.insert(url)
+    def finished_url(self, urlconfig):
+        self._url_database.insert(urlconfig)
 
-    def archived_url(self, url):
-        return self._url_database.has_url(url)
+    def archived_url(self, urlconfig):
+        return self._url_database.has_url(urlconfig.url)
 
-    def allowed_url(self, url):
+    def allowed_url(self, urlconfig):
         for regex in self.settings.regex:
-            if re.search(regex, url):
-                return True
-        return False
+            if re.search(regex, urlconfig.url):
+                break
+        else:
+            return False
+        if urlconfig.depth > self.max_depth:
+            return False
+        return True
+
+    @property
+    def max_depth(self):
+        return self.settings.depth
 
     @property
     def is_started(self):

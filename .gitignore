@@ -10,3 +10,4 @@ warc/
 jobs/
 *.pkl
 *.db*
+crawl/wget-lua

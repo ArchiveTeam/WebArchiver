@@ -54,7 +54,7 @@ def check_time(old_time, max_time):
 
 
 def split_set(l, n):
-    l = l.copy()
+    l = set(l.values())
     size = math.ceil(len(l)/n)
     lists = []
     if size == 0:

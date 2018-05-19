@@ -88,22 +88,20 @@ class StagerServer(BaseServer):
     def check_jobs(self):
         if check_time(self._last_jobs_check, JOBS_CHECK_TIME):
             for job in self._jobs.values():
-                for url, s, backups in job.share_urls():
+                for urlconfig, s, backups in job.share_urls():
                     if s is None:
                         s = self._socket
-                        self._command_job_url(None, [None, job.identifier,
-                                                     url])
+                        self._command_job_url(None, [None, urlconfig])
                     else:
-                        self._write_socket_message(s, 'JOB_URL',
-                                                   job.identifier, url)
+                        self._write_socket_message(s, 'JOB_URL', urlconfig)
                     self._write_socket_message(backups, 'JOB_URL_BACKUP',
-                                               job.identifier, url, s.listener)
+                                               urlconfig, s.listener)
             self._last_jobs_check = time.time()
 
     def _command_job_url(self, s, message):
-        crawler = self._jobs[message[1]].add_url_crawler(message[2])
-        self._write_socket_message(crawler, 'JOB_URL_CRAWL', message[1],
-                                   message[2])
+        crawler = self._jobs[message[1].job_identifier] \
+            .add_url_crawler(message[1])
+        self._write_socket_message(crawler, 'JOB_URL_CRAWL', message[1])
 
     def create_job(self, settings, initial_stager=None, initial=True):
         if settings.identifier in self._jobs:
@@ -212,20 +210,20 @@ class StagerServer(BaseServer):
                                        message[1])
 
     def _command_job_url(self, s, message):
-        crawler = self._jobs[message[1]].add_url_crawler(message[2])
-        self._write_socket_message(crawler, 'JOB_URL_CRAWL', message[1],
-                                   message[2])
+        crawler = self._jobs[message[1].job_identifier] \
+            .add_url_crawler(message[1])
+        self._write_socket_message(crawler, 'JOB_URL_CRAWL', message[1])
 
     def _command_job_url_backup(self, s, message):
         #self._jobs[message[1]]['urls'].add(message[2]) #TODO should this be currently crawling or currently using
-        self._jobs[message[1]].backup_url(s, message[2])
+        self._jobs[message[1].job_identifier].backup_url(s, message[1])
 
     def _command_job_url_finished(self, s, message):
-        self._jobs[message[1]].finish_url(s, message[2], message[3])
+        self._jobs[message[1].job_identifier].finish_url(s, message[1], message[2])
 
     def _command_job_url_discovered(self, s, message):
         # TODO check if URL should be crawled
-        self._jobs[message[1]].add_url(message[3])
+        self._jobs[message[1].job_identifier].add_url(message[1])
 
     def _command_job_set_counter(self, s, message):
         job = self._jobs[message[1]]

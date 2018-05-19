@@ -11,11 +11,11 @@ class JobSettingsException(LookupError):
 
 class JobSettings:
     def __init__(self, identifier, config, location):
-        self.identifier = '{}-{}'.format(identifier, random_string(8))
+        self.identifier = '{}_{}'.format(identifier, random_string(8))
         self.config = config
         self.regex = tuple(self.config['regex'].split('\n'))
-        self._add_setting('rate', sys.maxsize)
-        self._add_setting('depth', sys.maxsize)
+        self._add_setting('rate', sys.maxsize, int)
+        self._add_setting('depth', sys.maxsize, int)
         self._raw_responses = {}
         self._raw_files = {}
         with open(location, 'rb') as f:
@@ -42,8 +42,9 @@ class JobSettings:
                         urls.append(url)
         self.urls = tuple(urls)
 
-    def _add_setting(self, key, default):
-        setattr(self, key, self.config[key] if key in self.config else default)
+    def _add_setting(self, key, default, t):
+        setattr(self, key, t(self.config[key])
+                if key in self.config else default)
 
     def get_raw_response(self, url):
         return self._raw_responses.get(url)

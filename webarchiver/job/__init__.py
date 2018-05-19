@@ -6,16 +6,17 @@ import time
 
 from webarchiver.config import *
 from webarchiver.job.archive import ArchiveUrls
+from webarchiver.url import UrlConfig
 from webarchiver.utils import *
 
 
-def initial_urls(url, list_):
-    if url is None:
-        return set()
-    elif list_:
-        return set(url)
-    else:
-        return set([url])
+#def initial_urls(url, list_):
+#    if url is None:
+#        return set()
+#    elif list_:
+#        return set(url)
+#    else:
+#        return set([url])
 
 
 def new_jobs():
@@ -70,10 +71,12 @@ class Job(threading.Thread):
     def _new_crawl(self):
         quota = min(self._url_quota, len(self._urls))
         urls = {self._urls.pop() for i in range(quota)}
+        urls_depths = {urlconfig.url: urlconfig.depth for urlconfig in urls} 
         self._url_quota -= quota
         self._urls.difference_update(urls)
         directory = self._directory + '_' + random_string(10)
-        found = ArchiveUrls(directory, urls).run()
+        found = ArchiveUrls(directory,
+                            {urlconfig.url for urlconfig in urls}).run()
         if found is not False:
             with self._set_files.lock:
                 for filename in os.listdir(directory):
@@ -82,17 +85,18 @@ class Job(threading.Thread):
                                              os.path.join(directory,
                                                           filename)))
             with self._set_urls.lock:
-                for url in urls:
-                    self._set_urls.add((self._identifier, url))
+                self._set_urls.update(urls)
             with self._set_found.lock:
                 for parenturl, url in found:
-                    self._set_found.add((self._identifier, parenturl, url))
+                    self._set_found.add(
+                        UrlConfig(self._identifier, url,
+                                  self._urls_depths[parenturl]+1, parenturl)
+                    )
         else:
-            for url in urls:
-                self._urls.add(url)
+            self._urls.update(urls)
             # TODO remove crawl directory?
 
-    def add_url(self, url):
+    def add_url(self, urlconfig):
         self._last_time_url = time.time()
-        self._urls.add(url)
+        self._urls.add(urlconfig)
 
