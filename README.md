@@ -41,7 +41,8 @@ A crawl of a website or a list of URLs is called a job. To add a job a configura
 * `urls file`: Filename of a file containing a list of URLs.
 * `urls url`: URL to a webpage containing a raw list of URLs.
 * `rate`: URL crawl rate in URLs per second.
-* `regex`: Regular expression a discovered URL should match.
+* `allow regex`: Regular expression a discovered URL should match.
+* `ignore regex`: Regular expression a discovered URL should not match.
 * `depth`: Maximum depth to crawl.
 
 For all settings except `rate` and `depth` multiple entries are possible.
@@ -54,8 +55,9 @@ url = https://example.com/page2
 urls file = list
 urls url = https://pastebin.com/raw/tMpQQk7B
 rate = 4
-regex = https?://(?:www)?example\.com/
-regex = https?://[^/]+\.london
+allow regex = https?://(?:www)?example\.com/
+allow regex = https?://[^/]+\.london
+ignore regex = https?://[^/]+\.nl
 depth = 3
 ```
 

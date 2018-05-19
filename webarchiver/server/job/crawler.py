@@ -53,11 +53,14 @@ class CrawlerServerJob:
         return self._url_database.has_url(urlconfig.url)
 
     def allowed_url(self, urlconfig):
-        for regex in self.settings.regex:
+        for regex in self.settings.allow_regex:
             if re.search(regex, urlconfig.url):
                 break
         else:
             return False
+        for regex in self.settings.ignore_regex:
+            if re.search(regex, urlconfig.url):
+                return False
         if urlconfig.depth > self.max_depth:
             return False
         return True

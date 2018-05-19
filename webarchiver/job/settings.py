@@ -13,7 +13,8 @@ class JobSettings:
     def __init__(self, identifier, config, location):
         self.identifier = '{}_{}'.format(identifier, random_string(8))
         self.config = config
-        self.regex = tuple(self.config['regex'].split('\n'))
+        self.allow_regex = tuple(self.config['allow regex'].split('\n'))
+        self.ignore_regex = tuple(self.config['ignore regex'].split('\n'))
         self._add_setting('rate', sys.maxsize, int)
         self._add_setting('depth', sys.maxsize, int)
         self._raw_responses = {}

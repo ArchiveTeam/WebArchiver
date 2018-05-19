@@ -11,3 +11,4 @@ jobs/
 *.pkl
 *.db*
 crawl/wget-lua
+sounds*
