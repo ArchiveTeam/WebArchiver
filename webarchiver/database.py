@@ -1,3 +1,4 @@
+import os
 import sqlite3
 
 
@@ -6,7 +7,8 @@ class BaseDatabase:
         assert synchronous in ('OFF', 'ON')
         assert journal_mode in ('OFF', 'WAL', 'MEMORY')
 
-        self._con = sqlite3.connect('{}.db'.format(path))
+        self._path = '{}.db'.format(path)
+        self._con = sqlite3.connect(self._path)
         self._cur = self._con.cursor()
         self._cur.execute('PRAGMA synchronous={}'.format(synchronous))
         self._cur.execute('PRAGMA journal_mode={}'.format(journal_mode))
@@ -18,6 +20,9 @@ class BaseDatabase:
         self._cur.close()
         self._con.commit()
         self._con.close()
+
+    def clean(self):
+        os.remove(self._path)
 
 
 class UrlDeduplicationDatabase(BaseDatabase):
