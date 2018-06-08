@@ -12,3 +12,4 @@ jobs/
 *.db*
 crawl/wget-lua
 sounds*
+testcfg/

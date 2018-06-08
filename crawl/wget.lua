@@ -8,6 +8,8 @@ local tries = 0
 local final_url = nil
 local newurls = {}
 
+local status_code = nil
+
 read_file = function(file)
   if file then
     local f = assert(io.open(file))
@@ -71,7 +73,7 @@ wget.callbacks.get_urls = function(file, url, is_css, iri)
     end
   end
   
-  if true then
+  if status_code ~= 404 and status_code ~= 403 then
     html = read_file(file)
     for newurl in string.gmatch(html, '([^"]+)') do
       checknewurl(newurl)

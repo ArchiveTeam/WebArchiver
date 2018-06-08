@@ -22,9 +22,17 @@ class ArchiveUrls:
         if wget_lua_return_code not in WGET_LUA_RETURN_CODES:
             return False
         self.warc_file.deduplicate()
-        with open(self._found_urls_path, 'r') as f:
-            return set([tuple(s.strip().split('\0'))
-                        for s in f.read().splitlines() if len(s) > 0])
+        discovered_data = set()
+        with open(self._found_urls_path, 'rb') as f:
+            for line in f:
+                if len(line) == 0:
+                    continue
+                try:
+                    line = line.decode('utf-8')
+                except UnicodeDecodeError:
+                    continue
+                discovered_data.add(tuple(line.strip().split('\0')))
+        return discovered_data
 
     def archive(self):
         os.environ['FOUND_URLS_FILE'] = self._found_urls_path

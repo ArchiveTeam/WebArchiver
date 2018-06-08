@@ -14,7 +14,8 @@ class JobSettings:
         self.identifier = '{}_{}'.format(identifier, random_string(8))
         self.config = config
         self.allow_regex = tuple(self.config['allow regex'].split('\n'))
-        self.ignore_regex = tuple(self.config['ignore regex'].split('\n'))
+        self.ignore_regex = tuple(self.config['ignore regex'].split('\n')
+                                  if 'ignore regex' in self.config else [])
         self._add_setting('rate', sys.maxsize, int)
         self._add_setting('depth', sys.maxsize, int)
         self._raw_responses = {}
