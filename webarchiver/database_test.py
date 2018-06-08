@@ -2,16 +2,34 @@ import os
 import unittest
 
 from webarchiver.database import UrlDeduplicationDatabase
+from webarchiver.url import UrlConfig
 
 
 class TestUrlDeduplicationDatabase(unittest.TestCase):
-    def test_url_exists(self):
-        d = UrlDeduplicationDatabase('test.db', 'test')
-        d.insert('https://www.archiveteam.org/')
-        self.assertTrue(d.has_url('https://www.archiveteam.org/'))
-        self.assertFalse(d.has_url('https://tracker.archiveteam.org/'))
+    def test_single_url_exists(self):
+        d = UrlDeduplicationDatabase('test', 'test')
+        d.insert(UrlConfig('', 'https://example.org/', 0, ''))
+        self.assertTrue(d.has_url('https://example.org/'))
         d.stop()
-        os.remove('test.db')
+        d.clean()
+
+    def test_single_url_not_exists(self):
+        d = UrlDeduplicationDatabase('test', 'test')
+        d.insert(UrlConfig('', 'https://example.org/', 0, ''))
+        self.assertFalse(d.has_url('https://example.com/'))
+        d.stop()
+        d.clean()
+
+    def test_multiple_urls_exists(self):
+        d = UrlDeduplicationDatabase('test', 'test')
+        d.insert(UrlConfig('', 'https://example.org/', 0, ''))
+        d.insert(UrlConfig('', 'https://example.com/', 0, ''))
+        d.insert(UrlConfig('', 'https://example.sometld/', 0, ''))
+        self.assertTrue(d.has_url('https://example.org/'))
+        self.assertTrue(d.has_url('https://example.com/'))
+        self.assertTrue(d.has_url('https://example.sometld/'))
+        d.stop()
+        d.clean()
 
 
 class TestPayloadDeduplicationDatabase(unittest.TestCase):
