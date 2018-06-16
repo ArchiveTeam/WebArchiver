@@ -1,6 +1,7 @@
 *~
 *.pyc
 __pycache__/
+docs/
 old/
 data/
 starttest*

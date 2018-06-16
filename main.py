@@ -1,3 +1,4 @@
+"""Start WebArchiver."""
 import argparse
 import os
 import sys
@@ -6,6 +7,11 @@ from webarchiver.config import *
 
 
 def check():
+    """Checks if everything is ready to start.
+
+    Creates the ``CRAWL_DIRECTORY`` directory is it does not exist and checks
+    if wget-lua is compiled.
+    """
     if not os.path.isdir(CRAWLS_DIRECTORY):
         print('{} not found, creating.'.format(CRAWLS_DIRECTORY))
         os.makedirs(CRAWLS_DIRECTORY)
@@ -16,6 +22,12 @@ def check():
 
 
 def main():
+    """Parses the arguments and start the scripts.
+
+    A :class:`webarchiver.server.CrawlerServer` or
+    :class:`webarchiver.server.StagerServer` server will be created depending
+    on the given arguments.
+    """
     parser = argparse.ArgumentParser()
     parser.add_argument('-S', '--sort',
                         help='The sort of server to be created.',
@@ -37,12 +49,12 @@ def main():
     arguments = parser.parse_args(sys.argv[1:])
     if arguments.sort == 'crawler':
         from webarchiver.server import CrawlerServer
-        server = CrawlerServer(arguments.host, arguments.port,
-                               arguments.stager_host, arguments.stager_port)
+        server = CrawlerServer(arguments.stager_host, arguments.stager_port,
+                               arguments.host, arguments.port)
     elif arguments.sort == 'stager':
         from webarchiver.server import StagerServer
-        server = StagerServer(arguments.host, arguments.port,
-                              arguments.stager_host, arguments.stager_port)
+        server = StagerServer(arguments.stager_host, arguments.stager_port,
+                               arguments.host, arguments.port)
     server.run()
 
 if __name__ == '__main__':

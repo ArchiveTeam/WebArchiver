@@ -1,3 +1,4 @@
+"""Add a job."""
 import configparser
 import os
 import pickle
@@ -9,6 +10,11 @@ from webarchiver.job.settings import JobSettings
 
 
 def main():
+    """Adds a job to WebArchiver.
+
+    The file with the job configuration should be given as argument to the
+    scripts.
+    """
     if len(sys.argv) != 2:
         print('The config file is needed as argument.')
         exit(1)

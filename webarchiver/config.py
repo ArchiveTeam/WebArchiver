@@ -1,3 +1,4 @@
+"""Configuration."""
 import os
 
 # crawler
