@@ -38,8 +38,8 @@ def start(sort, stager_host, stager_port, host, port):
 def check():
     """Checks if everything is ready to start.
 
-    Creates the ``CRAWL_DIRECTORY`` directory is it does not exist and checks
-    if wget-lua is compiled.
+    Creates the ``CRAWL_DIRECTORY`` and ``LOGS_DIRECTORY`` directories if they
+    do not exist and checks if wget-lua is compiled.
     """
     if not os.path.isdir(LOGS_DIRECTORY):
         print('Directory \'{}\' not found, creating.'.format(LOGS_DIRECTORY))
