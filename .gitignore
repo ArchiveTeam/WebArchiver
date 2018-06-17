@@ -2,6 +2,7 @@
 *.pyc
 __pycache__/
 docs/
+logs/
 old/
 data/
 starttest*

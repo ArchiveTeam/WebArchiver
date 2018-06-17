@@ -1,5 +1,6 @@
 """Configuration."""
 import os
+import time
 
 # crawler
 REQUEST_STAGER_TIME = 120
@@ -8,6 +9,10 @@ PING_TIME = 60
 MAX_BACKUPS = 3
 MAX_STAGER = 5
 MAX_SPACE = 1000000000
+
+LOGS_DIRECTORY = 'logs'
+LOG_FILENAME = os.path.join(LOGS_DIRECTORY,
+                            'log-{}.log'.format(str(int(time.time()))))
 
 URL_QUOTA_TIME = 2
 FOUND_URLS_FILE = 'found'
