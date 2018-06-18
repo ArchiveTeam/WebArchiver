@@ -4,12 +4,7 @@ from webarchiver.config import *
 
 
 class Log:
-    """The logger.
-
-    Attributes:
-        formatter (:obj:`logging.Formatter`): The formatter for the log file
-            and stream output.
-    """
+    """The logger."""
 
     def __init__(self, file_handler=True, stream_handler=True):
         """Inits the logger.
@@ -23,8 +18,6 @@ class Log:
             stream_handler (bool, optional): Whether to add a stream handler to
                 the logger. Default is True.
         """
-        self.formatter = logging.Formatter('%(asctime)s - %(name)s - '
-                                           '%(levelname)s - %(message)s')
         logger = logging.getLogger()
         logger.setLevel(logging.NOTSET)
         logger.filter('webarchiver')
@@ -44,7 +37,9 @@ class Log:
         """
         handler = logging.FileHandler(LOG_FILENAME)
         handler.setLevel(logging.DEBUG)
-        handler.setFormatter(self.formatter)
+        handler.setFormatter(logging.Formatter('%(asctime)s - %(threadName)s -'
+                                               ' %(name)s - %(levelname)s -'
+                                               ' %(message)s'))
         return handler
 
     def _init_stream_handler(self):
@@ -57,6 +52,6 @@ class Log:
         """
         handler = logging.StreamHandler()
         handler.setLevel(logging.INFO)
-        handler.setFormatter(self.formatter)
+        handler.setFormatter(logging.Formatter('%(levelname)s - %(message)s'))
         return handler
 
