@@ -23,12 +23,16 @@ class Log:
             stream_handler (bool, optional): Whether to add a stream handler to
                 the logger. Default is True.
         """
-        self.formatter = logging.Formatter('%(asctime)s %(name)s %(levelname)s'
-                                      ' %(message)s')
+        self.formatter = logging.Formatter('%(asctime)s - %(name)s - '
+                                           '%(levelname)s - %(message)s')
+        logger = logging.getLogger()
+        logger.setLevel(logging.NOTSET)
+        logger.filter('webarchiver')
         if file_handler:
-            logging.getLogger().addHandler(self._init_file_handler())
+            logger.addHandler(self._init_file_handler())
         if stream_handler:
-            logging.getLogger().addHandler(self._init_stream_handler())
+            logger.addHandler(self._init_stream_handler())
+        logger.info('Started logging.')
 
     def _init_file_handler(self):
         """Adds the file handler to the logger.
@@ -39,6 +43,7 @@ class Log:
             :obj:`logging.FileHandler`: The file handler.
         """
         handler = logging.FileHandler(LOG_FILENAME)
+        handler.setLevel(logging.DEBUG)
         handler.setFormatter(self.formatter)
         return handler
 
@@ -51,6 +56,7 @@ class Log:
             :obj:`logging.StreamHandler`: The stream handler.
         """
         handler = logging.StreamHandler()
+        handler.setLevel(logging.INFO)
         handler.setFormatter(self.formatter)
         return handler
 
