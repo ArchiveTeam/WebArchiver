@@ -11,8 +11,9 @@ MAX_STAGER = 5
 MAX_SPACE = 1000000000
 
 LOGS_DIRECTORY = 'logs'
-LOG_FILENAME = os.path.join(LOGS_DIRECTORY,
-                            'log-{}.log'.format(str(int(time.time()))))
+LOG_FILENAME = os.path.join(LOGS_DIRECTORY, '{}.log'
+                            .format(datetime.datetime.today()
+                                    .strftime('%Y%m%d')))
 
 URL_QUOTA_TIME = 2
 FOUND_URLS_FILE = 'found'
