@@ -36,3 +36,11 @@ class UrlConfig:
         self.depth = depth
         self.parent_url = parent_url
 
+    def __repr__(self):
+        return '<{} at 0x{:x} job={}>'
+            format(__name__, id(self), self.settings.identifier)
+
+    def __hash__(self):
+        return hash(';'.join(self.job_identifier, self.url, self.depth,
+                             self.parent_url))
+
