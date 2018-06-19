@@ -27,8 +27,8 @@ class BaseDatabase:
         self._cur = self._con.cursor()
         logger.debug('Database %s; synchronous=%s.', path, synchronous)
         logger.debug('Database %s; journal mode=%s.', path, journal_mode)
-        self._cur.execute('PRAGMA synchronous=%s'.format(synchronous))
-        self._cur.execute('PRAGMA journal_mode=%s'.format(journal_mode))
+        self._cur.execute('PRAGMA synchronous={}'.format(synchronous))
+        self._cur.execute('PRAGMA journal_mode={}'.format(journal_mode))
 
     def insert(self):
         pass
