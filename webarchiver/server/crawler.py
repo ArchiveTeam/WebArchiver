@@ -168,7 +168,7 @@ class CrawlerServer(BaseServer):
         Both requested and received data is saved in a :class:`WarcFile`
         object.
         """
-        if len(self._filename_set) == 0:
+        if len(self._filenames_set) == 0:
             return None
         logger.debug('Uploading WARC files.')
         with self._filenames_set.lock:
