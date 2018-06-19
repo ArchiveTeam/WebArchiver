@@ -59,6 +59,10 @@ class Log:
         return handler
 
     def shutdown(self):
+        """Shuts down the logging process and compresses the log.
+
+        The created log is compressed using lzma.
+        """
         logging.info('Logging stopping.')
         logging.info('Compressing log and shutting down.')
         logging.shutdown()
