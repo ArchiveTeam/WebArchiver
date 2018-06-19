@@ -50,11 +50,8 @@ class WarcFile:
         self.pathname = os.path.join(self.directory_name, self.filename)
         self.pathname_deduplicated = os.path.join(self.directory_name,
                                                   self.filename_deduplicated)
-        logger.debug('Prepare WARC file %s with deduplicated WARC file.',
-                     self.pathname, self.pathname_deduplicate)
-        if not os.path.isfile(self.pathname):
-            logger.error('WARC file %s not found.', self.pathname)
-            raise FileNotFoundError(self.pathname)
+        logger.debug('Prepare WARC file %s',
+                     self.pathname, self.pathname_deduplicated)
 
     def deduplicate(self):
         """Deduplicates the WARC file.
@@ -65,8 +62,11 @@ class WarcFile:
         written to the deduplicated WARC file. If no deduplicate is found the
         original record is written to the deduplicated WARC file.
         """
+        if not os.path.isfile(self.pathname):
+            logger.error('WARC file %s not found.', self.pathname)
+            raise FileNotFoundError(self.pathname)
         logger.info('Deduplicating WARC file %s into WARC file %s.',
-                    self.pathname, self.pathname_deduplicate)
+                    self.pathname, self.pathname_deduplicated)
         with open(self.pathname, 'rb') as f_in, \
                 open(self.pathname_deduplicated, 'wb') as f_out:
             writer = WARCWriter(filebuf=f_out, gzip=True)
