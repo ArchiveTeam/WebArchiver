@@ -37,10 +37,10 @@ class UrlConfig:
         self.parent_url = parent_url
 
     def __repr__(self):
-        return '<{} at 0x{:x} job={}>' \
-            .format(__name__, id(self), self.settings.identifier)
+        return '<{} at 0x{:x} url={}>' \
+            .format(__name__, id(self), self.url)
 
     def __hash__(self):
-        return hash(';'.join(self.job_identifier, self.url, self.depth,
-                             self.parent_url))
+        return hash(';'.join([self.job_identifier, self.url, str(self.depth),
+                              str(self.parent_url)]))
 
