@@ -1,4 +1,7 @@
 import logging
+import lzma
+import mmap
+import os
 
 from webarchiver.config import *
 
@@ -35,7 +38,7 @@ class Log:
         Returns:
             :obj:`logging.FileHandler`: The file handler.
         """
-        handler = logging.FileHandler(LOG_FILENAME)
+        handler = logging.FileHandler(LOG_PATH)
         handler.setLevel(logging.DEBUG)
         handler.setFormatter(logging.Formatter('%(asctime)s - %(threadName)s -'
                                                ' %(name)s - %(levelname)s -'
@@ -57,5 +60,11 @@ class Log:
 
     def shutdown(self):
         logging.info('Logging stopping.')
+        logging.info('Compressing log and shutting down.')
         logging.shutdown()
+        with open(LOG_PATH, 'r+b') as f, \
+                lzma.open(LOG_PATH + '.xz', 'wb') as fz:
+            fz.write(mmap.mmap(f.fileno(), 0))
+        os.remove(LOG_PATH)
+        
 
