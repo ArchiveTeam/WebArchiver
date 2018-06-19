@@ -55,3 +55,7 @@ class Log:
         handler.setFormatter(logging.Formatter('%(levelname)s - %(message)s'))
         return handler
 
+    def shutdown(self):
+        logging.info('Logging stopping.')
+        logging.shutdown()
+
