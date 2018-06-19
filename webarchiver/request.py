@@ -1,7 +1,10 @@
 """Method for requesting web pages."""
+import logging
 import time
 
 import requests
+
+logger = logging.getLogger(__name__)
 
 
 def get(url, status_codes=[200], content_length=0, max_tries=1,
@@ -42,18 +45,28 @@ def get(url, status_codes=[200], content_length=0, max_tries=1,
     tries = 0
     while tries < max_tries:
         try:
+            logger.debug('Getting URL %s, try %s.', url, tries)
             response = (session or requests).get(url, headers=headers,
                                                  cookies=cookies,
                                                  stream=stream)
             if not stream:
-                assert len(response.text) > content_length
-            assert response.status_code in status_codes
-            if preserve_url:
+                if len(response.text) < content_length:
+                    logger.warning('Content length URL %s %s < %s.', url,
+                                   len(response.text), content_length)
+                    assert len(response.text) > content_length
+            if response.status_code not in status_codes:
+                logger.warning('Status code URL %s %s not in %s.', url,
+                               response.status_code, status_codes)
+                assert response.status_code in status_codes
+            if preserve_url and response.url != url:
+                logger.warning('URL %s changed to %s.', url, response.url)
                 assert response.url == url
             return response
         except:
             tries += 1
             if tries < max_tries:
+                logger.info('Sleeping %s seconds for getting URL %s.',
+                            sleep_time, url)
                 time.sleep(sleep_time)
     return False
 

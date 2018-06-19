@@ -1,6 +1,9 @@
 """Databases used in webarchiver."""
+import logging
 import os
 import sqlite3
+
+logger = logging.getLogger(__name__)
 
 
 class BaseDatabase:
@@ -17,12 +20,15 @@ class BaseDatabase:
         """
         assert synchronous in ('OFF', 'ON')
         assert journal_mode in ('OFF', 'WAL', 'MEMORY')
-
         self._path = '{}.db'.format(path)
+        logger.debug('Database %s; connecting.', path)
         self._con = sqlite3.connect(self._path)
+        logger.debug('Database %s; getting cursor.', path)
         self._cur = self._con.cursor()
-        self._cur.execute('PRAGMA synchronous={}'.format(synchronous))
-        self._cur.execute('PRAGMA journal_mode={}'.format(journal_mode))
+        logger.debug('Database %s; synchronous=%s.', path, synchronous)
+        logger.debug('Database %s; journal mode=%s.', path, journal_mode)
+        self._cur.execute('PRAGMA synchronous=%s'.format(synchronous))
+        self._cur.execute('PRAGMA journal_mode=%s'.format(journal_mode))
 
     def insert(self):
         pass
@@ -33,12 +39,16 @@ class BaseDatabase:
         The database cursor is closed, changed are committed and the database
         file is closed.
         """
+        logger.debug('Database %s; closing cursor.', self._path)
         self._cur.close()
+        logger.debug('Database %s; committing.', self._path)
         self._con.commit()
+        logger.debug('Database %s; closing connection.', self._path)
         self._con.close()
 
     def clean(self):
         """Removes the database file."""
+        logger.debug('Database %s; closing cursor.', self._path)
         os.remove(self._path)
 
 
@@ -59,6 +69,8 @@ class UrlDeduplicationDatabase(BaseDatabase):
         """
         super().__init__(path, 'OFF', 'WAL')
         self._name = name
+        logger.debug('Database %s; table %s; creating.', self._path,
+                     self._name)
         self._cur.execute('CREATE TABLE {} ' \
                           '(url TEXT, depth INTEGER, parent TEXT)' \
                           .format(self._name))
@@ -73,6 +85,8 @@ class UrlDeduplicationDatabase(BaseDatabase):
             urlconfig (:obj:`webarchiver.url.UrlConfig`): The configuration for
                 the URL to be added.
         """# TODO assertions
+        logger.debug('Database %s; table %s; adding %s.', self._path,
+                     self._name, urlconfig)
         self._cur.execute('INSERT INTO {} VALUES (?,?,?)'.format(self._name), 
                           (urlconfig.url, urlconfig.depth,
                            urlconfig.parent_url \
@@ -90,6 +104,8 @@ class UrlDeduplicationDatabase(BaseDatabase):
         Returns:
             bool: True if the URL is in the database, else False.
         """
+        logger.debug('Database %s; table %s; checking URL %s.', self._path,
+                     self._name, url)
         self._cur.execute('SELECT 1 FROM {} WHERE url=? LIMIT 1'
                           .format(self._name), (url,))
         return self._cur.fetchone() is not None

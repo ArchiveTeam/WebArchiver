@@ -1,5 +1,6 @@
 """The crawler server."""
 import functools
+import logging
 import os
 import socket
 import time
@@ -11,6 +12,8 @@ from webarchiver.server.job import CrawlerServerJob
 from webarchiver.server.node import CrawlerNode
 from webarchiver.set import LockedSet
 from webarchiver.utils import check_time, key_lowest_value, sample
+
+logger = logging.getLogger(__name__)
 
 
 class CrawlerServer(BaseServer):
@@ -37,6 +40,7 @@ class CrawlerServer(BaseServer):
         self._found_urls_set = LockedSet()
         self._last_upload_request = 0
         self._last_url_quota = 0
+        logger.info('Created crawler server.')
 
     def _run_round(self):
         """Runs the base server loop and functions specific for this server.
@@ -54,14 +58,15 @@ class CrawlerServer(BaseServer):
         self.found_urls()
         self.request_url_quota()
 
-    def _create_socket(self, address=None):
+    def _create_socket(self, address):
         """Creates and connects a :class:`webarchiver.server.base.Node` and
         adds this to the write queue.
 
         Args:
             address (tuple): A tuple (host, port) to connect to.
         """
-        s = self._connect_socket(address or self._address)
+        logger.debug('Creating connection with listener %s.', address)
+        s = self._connect_socket(address)
         self._write_queue[s] = []
         return s
 
@@ -91,8 +96,10 @@ class CrawlerServer(BaseServer):
         Returns:
             bool: True.
         """ #TODO returns
+        logger.debug('Adding stager %s.', listener)
         for s_ in self._stager:
             if s_.listener == listener:
+                logger.warning('Stager %s already added.', listener)
                 return None
         s_ = self._create_socket(listener) if not s else s
         self._read_list.append(s_)
@@ -161,6 +168,9 @@ class CrawlerServer(BaseServer):
         Both requested and received data is saved in a :class:`WarcFile`
         object.
         """
+        if len(self._filename_set) == 0:
+            return None
+        logger.debug('Uploading WARC files.')
         with self._filenames_set.lock:
             for job, path in self._filenames_set:
                 warc_file = self._upload_permissions[path]
@@ -171,6 +181,8 @@ class CrawlerServer(BaseServer):
                     warc_file.requested = True
                     continue
                 if warc_file.chosen is False:
+                    logger.debug('Resetting requests for WARC file %s for not'
+                                  ' chosing server in time.', warc_file)
                     del self._upload_permissions[path]
                 elif warc_file.chosen is not None and not warc_file.revoked:
                     self._write_socket_message(warc_file.to_revoke,
@@ -214,7 +226,10 @@ class CrawlerServer(BaseServer):
         :class:`webarchiver.url.UrlConfig` objects. After being send an URL is
         deleted from the job and from the set of finished URLs.
         """
+        if len(self._finished_urls_set) == 0:
+            return None
         finished = set()
+        logger.debug('Reporting finished URLs.')
         with self._finished_urls_set.lock:
             for urlconfig in self._finished_urls_set:
                 print(self._jobs)
@@ -243,7 +258,10 @@ class CrawlerServer(BaseServer):
 
         Send URLs are removed from the set.
         """
+        if len(self._found_urls_set) == 0:
+            return None
         finished = set()
+        logger.debug('Reporting finished URLs.')
         with self._found_urls_set.lock:
             for urlconfig in self._found_urls_set:
                 finished.add(urlconfig)
@@ -297,7 +315,9 @@ class CrawlerServer(BaseServer):
             settings (:obj:`webarchiver.job.settings.JobSettings`): The
                 settings for the new job.
         """
+        logger.debug('Creating job %s.', settings)
         if settings.identifier in self._jobs:
+            logger.warning('Job %s already created.', settings)
             return None
         self._jobs[settings.identifier] = \
             CrawlerServerJob(settings, self._filenames_set,
@@ -313,7 +333,9 @@ class CrawlerServer(BaseServer):
             bool: False if the job identifier is not known, True if the project
                 is succesfully started.
         """ #TODO True right?
+        logger.debug('Starting job %s.', identifier)
         if identifier not in self._jobs:
+            logger.warning('Job %s does not exist.', identifier)
             return False
         return self._jobs[identifier].start()
 
@@ -332,7 +354,9 @@ class CrawlerServer(BaseServer):
             bool: False if the job identifier is not known, True if the  stager
                 server is succesfully added.
         """
+        logger.debug('Adding stager %s to job %s.', s, identifier)
         if identifier not in self._jobs:
+            logger.warning('Job %s does not exist.', identifier)
             return False
         self._jobs[identifier].add_stager(s)
         return True
@@ -351,7 +375,9 @@ class CrawlerServer(BaseServer):
             bool: False if the job identifier is not known, True if the URL is
                 succesfully added.
         """
+        logger.debug('Adding URL %s.', urlconfig)
         if urlconfig.job_identifier not in self._jobs:
+            logger.debug('Job of URL %s not found.', urlconfig)
             return False
         self._jobs[urlconfig.job_identifier].add_url(s, urlconfig)
         return True
@@ -372,6 +398,7 @@ class CrawlerServer(BaseServer):
         if self._stager[s].pong is False:
             self._stager[s].pong = True
         else:
+            logger.info('Pong was send from %s without initial ping.', s)
             self.ping()
 
     def _command_confirmed(self, s, message):
@@ -474,6 +501,7 @@ class CrawlerServer(BaseServer):
 
                     WARC_FILE_RECEIVED <job identifier> <path to WARC file>
         """
+        logger.debug('Removing WARC file %s.', message[2])
         self._filenames_set.remove((message[1], message[2]))
         del self._upload_permissions[message[2]]
         os.remove(message[2])
@@ -554,6 +582,10 @@ class CrawlerServer(BaseServer):
         """
         n = MAX_STAGER - len(self._stager)
         return 0 if n < 0 else n
+
+    def __repr__(self):
+        return '<{} at 0x{:x} listener={}>'.format(__name__, id(self),
+                                                   self._address)
 
 
 class UploadPermissions(dict):
@@ -685,4 +717,8 @@ class WarcFile:
                 return False
             self._chosen = sample(self._granted, 1)
         return self._chosen
+
+    def __repr__(self):
+        return '<{} at 0x{:x} WARC file={}>'.format(__name__, id(self),
+                                                    self._path)
 

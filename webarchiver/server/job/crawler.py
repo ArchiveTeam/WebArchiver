@@ -1,9 +1,12 @@
 """Configuration for a job on a crawler server."""
+import logging
 import re
 import time
 
 from webarchiver.database import UrlDeduplicationDatabase
 from webarchiver.job import Job
+
+logger = logging.getLogger(__name__)
 
 
 class CrawlerServerJob:
@@ -46,6 +49,7 @@ class CrawlerServerJob:
         self._urls = {}
         self._url_database = UrlDeduplicationDatabase(self.identifier,
             'crawler_' + self.identifier)
+        logger.debug('Created crawler job %s.', self)
 
     def add_stager(self, s):
         """Adds a stager server to the project.
@@ -54,7 +58,10 @@ class CrawlerServerJob:
             s (:obj:`webarchiver.server.base.Node`): The stager server to add
                 to the job.
         """
+        logger.debug('Adding stager %s to crawler job %s.', s, self)
         if s in self.stager:
+            logger.warning('Stager %s already added to crawler job %s.', s,
+                           self)
             return None
         self.stager.append(s)
 
@@ -70,7 +77,10 @@ class CrawlerServerJob:
             urlconfig (:obj:`webarchiver.url.UrlConfig`): The configuration
                 of the URL to be checked.
         """
+        logger.debug('Adding URL %s from stager %s to crawler job %s.',
+                     urlconfig, s, self)
         if self.archived_url(urlconfig):
+            logger.debug('URL %s is already archived.', urlconfig)
             return None
         self._urls[urlconfig] = s
         self._job.add_url(urlconfig)
@@ -81,6 +91,7 @@ class CrawlerServerJob:
         Args:
             i (int): The number to increase the URL quota with.
         """
+        logger.debug('Crawler job %s received %s URLs quota.', self, i)
         self._received_url_quota = time.time()
         self._job.increase_url_quota(i)
 
@@ -99,8 +110,16 @@ class CrawlerServerJob:
         Args:
             urlconfig (:obj:`webarchiver.url.UrlConfig`): The configuration
                 of the URL to be checked.
+
+        Returns:
+            bool: False if the URL is not known to the job.
         """
+        logger.debug('Deleting URL %s from crawler job %s.', urlconfig, self)
+        if urlconfig not in self._urls:
+            logger.warning('URL %s not in crawler job%s.', urlconfig)
+            return False
         del self._urls[urlconfig]
+        return True
 
     def start(self):
         """Starts the job.
@@ -112,7 +131,9 @@ class CrawlerServerJob:
             bool: True is the crawl is started succesfully.
             NoneType: If the crawl is already started.
         """
+        logger.debug('Starting crawler job %s.', self)
         if self.is_started:
+            logger.warning('Crawler job %s already started.', self)
             return None
         self._job.start()
         self.started = True
@@ -125,6 +146,7 @@ class CrawlerServerJob:
             urlconfig (:obj:`webarchiver.url.UrlConfig`): The configuration
                 of the URL to be checked.
         """
+        logger.debug('URL %s finished for crawler job %s.', urlconfig, self)
         self._url_database.insert(urlconfig)
 
     def archived_url(self, urlconfig):
@@ -180,4 +202,8 @@ class CrawlerServerJob:
     def identifier(self):
         """str: The job identifier."""
         return self.settings.identifier
+
+    def __repr__(self):
+        return '<{} at 0x{:x} job={}>' \
+            .format(__name__, id(self), self.settings.identifier)
 

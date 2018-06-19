@@ -1,4 +1,5 @@
 """Managing jobs to archive data from the internet."""
+import logging
 import pickle
 import os
 import string
@@ -9,6 +10,8 @@ from webarchiver.config import *
 from webarchiver.job.archive import ArchiveUrls
 from webarchiver.url import UrlConfig
 from webarchiver.utils import *
+
+logger = logging.getLogger(__name__)
 
 
 def new_jobs():
@@ -27,6 +30,7 @@ def new_jobs():
             for filename in os.listdir(NEW_JOBS_DIR):
                 if not filename.endswith('.pkl'):
                     continue
+                logger.debug('Found new .pkl file %s.', filename)
                 filename_ = os.path.join(NEW_JOBS_DIR, filename)
                 with open(filename_, 'rb') as f:
                     yield pickle.load(f)
@@ -65,6 +69,7 @@ class Job(threading.Thread):
         self._crawls = []
         self.finished = False
         self._url_quota = 0
+        logger.debug('Created archive job %s.', self)
 
     def run(self):
         """Runs a loop to start a crawl for the currently received URLs.
@@ -97,6 +102,8 @@ class Job(threading.Thread):
         Args:
             quota (int): The number of URLs to add to the quota.
         """
+        logger.debug('Increasing URL quota for archive job %s with %s.', self,
+                     quota)
         self._url_quota += quota
 
     def _new_crawl(self):
@@ -109,6 +116,7 @@ class Job(threading.Thread):
         discovered URLs have their parent URL set to the old URL and have their
         depth increased.
         """
+        logger.debug('Starting new crawl for archive job %s.', self)
         quota = min(self._url_quota, len(self._urls))
         urls = {self._urls.pop() for i in range(quota)}
         urls_depths = {urlconfig.url: urlconfig.depth for urlconfig in urls} 
@@ -143,6 +151,11 @@ class Job(threading.Thread):
             urlconfig (:obj:`webarchiver.url.UrlConfig`): The configuration for
                 the to be queued URL.
         """
+        logger.debug('Adding URL %s to archiver job %s.', urlconfig, self)
         self._last_time_url = time.time()
         self._urls.add(urlconfig)
+
+    def __repr__(self):
+        return '<{} at 0x{:x} directory={}>'.format(__name__, id(self),
+                                                    self._identifier)
 

@@ -1,9 +1,12 @@
 """Manages job settings."""
+import logging
 import os
 import sys
 
 from webarchiver.request import get
 from webarchiver.utils import random_string
+
+logger = logging.getLogger(__name__)
 
 
 class JobSettingsException(LookupError):
@@ -107,4 +110,8 @@ class JobSettings:
             :obj:`requests.model.Response`: The response of GETting the URL.
         """
         return self._raw_responses.get(url)
+
+    def __repr__(self):
+        return '<{} at 0x{:x} job={}>'.format(__name__, id(self),
+                                              self.identifier)
 

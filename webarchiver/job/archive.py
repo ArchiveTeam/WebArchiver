@@ -1,4 +1,5 @@
 """Archives data from the internet."""
+import logging
 import os
 import shutil
 import subprocess
@@ -7,6 +8,8 @@ import time
 from webarchiver.config import *
 from webarchiver.utils import sha512_file
 from webarchiver.warc import WarcFile
+
+logger = logging.getLogger(__name__)
 
 
 class ArchiveUrls:
@@ -33,6 +36,7 @@ class ArchiveUrls:
         self._found_urls_path = os.path.join(directory, FOUND_URLS_FILE)
         if not os.path.isdir(self.directory):
             os.makedirs(self.directory)
+        logger.debug('Created URL archive job %s.', self)
 
     def run(self):
         """Runs the crawl.
@@ -51,9 +55,13 @@ class ArchiveUrls:
             bool: If the return code from the crawl is not in the list of
                 allowed return codes.
         """
-        wget_lua_return_code = self.archive()
-        print('code', wget_lua_return_code)
-        if wget_lua_return_code not in WGET_LUA_RETURN_CODES:
+        logger.debug('Starting URL archive job %s.', self)
+        wget_lua_exit_code = self.archive()
+        logger.debug('Wget for URL archive job %s exited with code %s.',
+                     self, wget_lua_exit_code)
+        if wget_lua_exit_code not in WGET_LUA_EXIT_CODES:
+            logger.warning('Wget for archiver job %s exited with a bad code.',
+                           self)
             return False
         self.warc_file.deduplicate()
         discovered_data = set()
@@ -76,6 +84,8 @@ class ArchiveUrls:
         Returns:
             int: The return code of the crawl.
         """
+        logger.debug('Running URL archive job %s using arguments %s.', self,
+                     self.arguments)
         os.environ['FOUND_URLS_FILE'] = self._found_urls_path
         return subprocess.call(self.arguments)
 
@@ -124,4 +134,8 @@ class ArchiveUrls:
                 arguments.append(url)                          
             self._arguments = arguments
         return self._arguments
+
+    def __repr__(self):
+        return '<{} at 0x{:x} directory={}>'.format(__name__, id(self),
+                                                    self.directory)
 

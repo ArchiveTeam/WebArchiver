@@ -1,4 +1,5 @@
 """The stager server."""
+import logging
 import os
 import socket
 import threading
@@ -10,6 +11,8 @@ from webarchiver.server.job import StagerServerJob
 from webarchiver.server.base import BaseServer, Node
 from webarchiver.server.node import StagerNodeCrawler, StagerNodeStager
 from webarchiver.utils import check_time, sample, write_file
+
+logger = logging.getLogger(__name__)
 
 
 class StagerServer(BaseServer):
@@ -43,10 +46,10 @@ class StagerServer(BaseServer):
         self._used_space = 0
         self._uploading = {}
         self.test = 0 #TODO TEMP
-
         self._job_checker = threading.Thread(target=self._get_jobs)
         self._job_checker.daemon = True
         self._job_checker.start()
+        logger.info('Created stager server.')
 
     def _run_round(self):
         """Runs the base server loop and functions specific for this server.
@@ -121,6 +124,11 @@ class StagerServer(BaseServer):
             bool: True if the the stager server is added.
             NoneType: If the stager server is already added.
         """
+        if extra:
+            logger.debug('Initiated connection to stager %s.', listener)
+        else:
+            logger.debug('Initiated connection to initial stager %s.',
+                         listener)
         if listener in self._listeners:
             return None
         s = self._connect_socket(listener)
@@ -175,6 +183,7 @@ class StagerServer(BaseServer):
             for job in self._jobs.values():
                 for urlconfig, s, backups in job.share_urls():
                     if s is None:
+                        logger.debug('Assigning URL %s to self.', urlconfig)
                         s = self._socket
                         self._command_job_url(None, [None, urlconfig])
                     else:
@@ -203,10 +212,16 @@ class StagerServer(BaseServer):
         Returns:
             bool: True is the job is succesfully created.
         """
+        logger.debug('Creating job %s.', settings)
         if settings.identifier in self._jobs:
+            logger.warning('Job %s already created.', settings)
             return None
         if initial is True and initial_stager is None:
+            logger.debug('Is initial stager for job %s.', settings)
             initial_stager = self._socket
+        else:
+            logger.debug('Stager %s is initial stager for job %s.',
+                         initial_stager, settings)
         self._jobs[settings.identifier] = StagerServerJob(settings, initial,
                                                           initial_stager)
         if initial:
@@ -255,7 +270,9 @@ class StagerServer(BaseServer):
         Returns:
             bool: True if the stager is added, False if the job is not known.
         """
+        logger.debug('Adding stagers to job %s.', identifier)
         if identifier not in self._jobs:
+            logger.warning('Job %s does not exist.', identifier)
             return False
         job = self._jobs[identifier]
         if listeners is not None:
@@ -300,7 +317,9 @@ class StagerServer(BaseServer):
         Returns:
             bool: True if the stagers are added, False is the job is not known.
         """
+        logger.debug('Adding crawlers to job %s.', identifier)
         if identifier not in self._jobs:
+            logger.warning('Job %s does not exist.', identifier)
             return False
         job = self._jobs[identifier]
         for s in self._crawlers:
@@ -324,10 +343,16 @@ class StagerServer(BaseServer):
             bool: True if the messages to start the job are sent, False if the
                 the job is not known.
         """#TODO start job on current stager server?
+        logger.debug('Starting job %s.', identifier)
         if identifier not in self._jobs:
+            logger.warning('Job %s does not exist.', identifier)
             return False
         job = self._jobs[identifier]
-        if job.started or job.finished:
+        if job.started:
+            logger.warning('Job %s is already started.', identifier)
+            return None
+        elif job.finished:
+            logger.warning('Job %s is already finished.', identifier)
             return None
         self._write_socket_message(job.stagers, 'JOB_START', identifier)
         return True
@@ -347,7 +372,10 @@ class StagerServer(BaseServer):
         Returns:
             bool: True if the stager server is added.
         """
+        logger.debug('Adding stager %s with listener %s.', s, listener)
         if listener in self._listeners:
+            logger.warning('Stager %s with listener %s already added.', s,
+                           listener)
             return None
         self._stager[s] = StagerNodeStager()
         self._listeners[listener] = s
@@ -369,7 +397,10 @@ class StagerServer(BaseServer):
         Returns:
             bool: True if the crawler server is added.
         """
+        logger.debug('Adding crawler %s with listener %s.', s, listener)
         if listener in self._listeners:
+            logger.warning('Crawler %s with listener %s already added.', s,
+                           listener)
             return None
         if s in self._crawlers: #TODO is this right? (see two lines up)
             self._write_socket_message(s, 'ALREADY_CONFIRMED')
@@ -947,4 +978,8 @@ class StagerServer(BaseServer):
     @free_space.setter
     def free_space(self, value):
         self._used_space += self.free_space - value
+
+    def __repr__(self):
+        return '<{} at 0x{:x} listener={}>'.format(__name__, id(self),
+                                                   self._address)
 

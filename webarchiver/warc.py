@@ -1,5 +1,6 @@
 """WARC processing."""
 import hashlib
+import logging
 import os
 import time
 import urllib
@@ -11,6 +12,8 @@ from webarchiver.utils import strip_url_scheme, sha512
 import warcio
 from warcio.archiveiterator import ArchiveIterator
 from warcio.warcwriter import WARCWriter
+
+logger = logging.getLogger(__name__)
 
 
 class WarcFile:
@@ -47,7 +50,10 @@ class WarcFile:
         self.pathname = os.path.join(self.directory_name, self.filename)
         self.pathname_deduplicated = os.path.join(self.directory_name,
                                                   self.filename_deduplicated)
+        logger.debug('Prepare WARC file %s with deduplicated WARC file.',
+                     self.pathname, self.pathname_deduplicate)
         if not os.path.isfile(self.pathname):
+            logger.error('WARC file %s not found.', self.pathname)
             raise FileNotFoundError(self.pathname)
 
     def deduplicate(self):
@@ -59,6 +65,8 @@ class WarcFile:
         written to the deduplicated WARC file. If no deduplicate is found the
         original record is written to the deduplicated WARC file.
         """
+        logger.info('Deduplicating WARC file %s into WARC file %s.',
+                    self.pathname, self.pathname_deduplicate)
         with open(self.pathname, 'rb') as f_in, \
                 open(self.pathname_deduplicated, 'wb') as f_out:
             writer = WARCWriter(filebuf=f_out, gzip=True)
@@ -67,10 +75,15 @@ class WarcFile:
                     url = record.rec_headers.get_header('WARC-Target-URI')
                     digest = record.rec_headers \
                                    .get_header('WARC-Payload-Digest')
+                    logger.debug('Deduplicating record %s %s.', url, digest)
                     duplicate = self._record_is_duplicate(url, digest)
                     if not duplicate:
+                        logger.debug('Record %s %s is not a duplicate.', url,
+                                     digest)
                         writer.write_record(record)
                     else:
+                        logger.debug('Record %s %s is a duplicate.', url,
+                                     digest)
                         writer.write_record(
                             self._record_response_to_revisit(writer, record,
                                                              duplicate)
@@ -96,6 +109,7 @@ class WarcFile:
             bool: False if the record is not found to be a duplicate record.
         """ #TODO fix deduplication server #TODO add info on returned data
         assert digest.startswith('sha1:')
+        logger.debug('Checking if record %s %s is a duplicate.', url, digest)
         digest = digest.split(':', 1)[1]
         hashed = sha512('{};{}'.format(digest, strip_url_scheme(url)))
         response = get(urllib.parse.urljoin(DEDUPLICATION_SERVER,
@@ -125,7 +139,7 @@ class WarcFile:
 
         Returns:
             :obj:`warcio.recordloader.ArcWarcRecord`: The revisit record.
-        """
+        """ #TODO better logging. all header changes?
         warc_headers = record.rec_headers
         warc_headers.replace_header('WARC-Refers-To-Date',
                                     datetime.strptime(duplicate,

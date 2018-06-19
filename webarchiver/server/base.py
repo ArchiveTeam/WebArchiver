@@ -1,4 +1,5 @@
 """The base of the servers."""
+import logging
 import pickle
 import random
 import select
@@ -6,6 +7,8 @@ import socket
 import struct
 
 from webarchiver.config import *
+
+logger = logging.getLogger(__name__)
 
 
 class Node:
@@ -17,7 +20,7 @@ class Node:
         socket: The socket of the node.
         listener: The listener of the node as tuple of (host, port).
     """
-
+    #TODO add if this is a stager of crawler server?
     def __init__(self, s, listener=None):
         """Inits the Node with at least a socket.
 
@@ -30,7 +33,7 @@ class Node:
         self.listener = listener
 
     def __getattr__(self, attr):
-        """If attribute is not found, find it in the socket.
+        """If the attribute is not found, find it in the socket.
 
         Args:
             attr (str): The called attribute.
@@ -39,6 +42,10 @@ class Node:
             Data from the socket attribute.
         """
         return getattr(self.socket, attr)
+
+    def __repr__(self):
+        return '<{} at 0x{:x} listener={}>'.format(__name__, id(self),
+                                                   self.listener)
 
 
 class BaseServer:
@@ -70,7 +77,7 @@ class BaseServer:
         self._last_stager_request = 0
         self._last_ping = 0
 
-        print(self._address)
+        logger.info('Creating server with listener %s.', self._address)
         self._socket = Node(socket.socket(socket.AF_INET, socket.SOCK_STREAM),
                             self._address)
         self._socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
@@ -105,6 +112,7 @@ class BaseServer:
         Returns:
             :obj:`Node`: With the address and the connected socket.
         """
+        logger.debug('Connecting to address %s.', address)
         s = Node(socket.socket(socket.AF_INET, socket.SOCK_STREAM), address)
         s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         s.connect(tuple(address))
@@ -134,8 +142,7 @@ class BaseServer:
         while len(message) < message_length:
             message += s.recv(message_length - len(message))
         message = pickle.loads(message)
-        print('received', [m[:30] if type(m) is bytes else m for m in message],
-              'from', s.getpeername())
+        logger.debug('Received message %s from %s.', message, s)
         self._process_message(s, message)
 
     def _write_socket(self, s):
@@ -153,9 +160,7 @@ class BaseServer:
         """
         while len(self._write_queue[s]) > 0:
             message = self._write_queue[s].pop(0)
-            print('sending',
-                  [m[:30] if type(m) is bytes else m for m in message],
-                  'to', s.getpeername())
+            logger.debug('Sending message %s to %s.', message, s)
             message = pickle.dumps(message, protocol=pickle.HIGHEST_PROTOCOL)
             s.sendall(struct.pack('L', len(message)) + message)
         self._read_list.append(s)
@@ -175,8 +180,12 @@ class BaseServer:
             *message: Data to be send to the :class:`Node`s.
         """
         if isinstance(s, socket.socket):
+            s_original = s
             s = Node(s)
+            logger.debug('Connection %s is not a node, created %s.',
+                         s_original, s)
         if type(s) in [list, set, dict]:
+            logger.debug('Sending message %s to %s servers.', message, len(s))
             for s_ in s:
                 self._write_socket_message(s_, *message)
             return None

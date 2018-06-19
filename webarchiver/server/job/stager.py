@@ -1,10 +1,13 @@
 """Configuration for a job on a stager server."""
+import logging
 import time
 
 from webarchiver.config import *
 from webarchiver.server.base import Node
 from webarchiver.url import init_urls
 from webarchiver.utils import sample, split_set
+
+logger = logging.getLogger(__name__)
 
 
 class StagerServerJob:
@@ -72,10 +75,10 @@ class StagerServerJob:
             if self.initial else {}
         self.current_urls = {}
         self.finished = False
-
         self.crawlers = {}
         self.stagers = {}
         self.backup = {}
+        logger.debug('Created stager job %s.', self)
 
     def add_crawler(self, s):
         """Adds a crawler server to the job.
@@ -87,7 +90,10 @@ class StagerServerJob:
         Args:
             s (:obj:`webarchiver.server.base.Node`): The crawler server to add.
         """
+        logger.debug('Adding crawler %s to stager job %s.', s, self)
         if s in self.crawlers:
+            logger.warning('Crawler %s already added to stager job %s.', s,
+                           self)
             return None
         self.crawlers[s] = StagerServerJobCrawler(s)
 
@@ -98,6 +104,7 @@ class StagerServerJob:
             s (:obj:`webarchiver.server.base.Node`): The crawler server to
                 confirm.
         """
+        logger.debug('Crawler %s confirmed on stager job %s.', s, self)
         self.crawlers[s].confirmed = True
 
     def add_stager(self, s):
@@ -110,6 +117,7 @@ class StagerServerJob:
         Args:
             s (:obj:`webarchiver.server.base.Node`): The stager server to add.
         """
+        logger.debug('Adding stager %s to crawler job %s.', s, self)
         self.stagers[s] = StagerServerJobStager(s)
         self.backup[s.listener] = {}
 
@@ -126,6 +134,8 @@ class StagerServerJob:
             urlconfig (:obj:`webarchiver.url.UrlConfig`): The URL configuration
                 to backup.
         """
+        logger.debug('Backing up URL %s from stager %s to stager job %s.',
+                     urlconfig, s, self)
         self.backup[s.listener][urlconfig.url] = urlconfig
 
     def share_urls(self):
@@ -150,6 +160,7 @@ class StagerServerJob:
                 For URLs assigned to this current stager server,
                 :obj:`webarchiver.server.base.Node` is None.
         """
+        logger.debug('Sharing discovered URLs for stager job %s.', self)
         if len(self.discovered_urls) == 0:
             return None
         url_lists = split_set(self.discovered_urls, len(self.stagers)+1)
@@ -172,7 +183,7 @@ class StagerServerJob:
                 del self.discovered_urls[urlconfig.url]
 
     def add_url_crawler(self, urlconfig):
-        """Adds a crawler to an URL.
+        """Adds an URL to a crawler.
 
         The URL is added to the list of current URLs and added to the
         configuration of the crawler server.
@@ -181,6 +192,7 @@ class StagerServerJob:
             :obj:`webarchiver.url.UrlConfig`: The URL to assign.
         """
         crawler = sample(self.crawlers, 1)[0]
+        logger.debug('Assigning URL %s to crawler %s.', urlconfig, crawler)
         self.current_urls[urlconfig.url] = urlconfig
         self.crawlers[crawler].add_url(urlconfig.url)
         return crawler
@@ -191,6 +203,8 @@ class StagerServerJob:
         Args:
             :obj:`webarchiver.url.UrlConfig`: The discovered URL to add.
         """
+        logger.debug('Adding discovered URL %s to stager job %s.', urlconfig,
+                     self)
         self.discovered_urls[urlconfig.url] = urlconfig
 
     def finish_url(self, s, url, listener):
@@ -206,14 +220,28 @@ class StagerServerJob:
             url (str): The finished URL.
             listener (tuple): The listener of the stager server that finished
                 the URL.
+
+        Returns:
+            bool: True if URL is deleted succesful, else False.
         """
         if listener in self.backup:
+            logger.debug('Removing URL %s from backup of stager %s on '
+                         'stager job %s.', url, listener, self)
+            if url not in self.backup[listener]:
+                logger.warning('URL %s not in backup of stager %s on '
+                               'stager job %s.', url, listener, self)
+                return False
             #job['urls'].remove(url) #TODO should this be currently crawling or currently using
             del self.backup[listener][url]
         else:
-            print(self.current_urls)
+            logger.debug('Removing URL %s assigned to crawler %s from stager '
+                         'job %s.', url, s, self)
+            if url not in self.current_urls:
+                logger.warning('URL %s not in stager job %s.', url, self)
+                return False
             del self.current_urls[url]
             self.crawlers[s].remove_url(url)
+        return True
 
     def confirmed(self, s, i):
         """Confirmes a stager server.
@@ -223,7 +251,9 @@ class StagerServerJob:
                 confirm.
             i (int): The state of the confirmation.
         """
-        if  self.stagers[s].confirmed:
+        logger.debug('Confirmed stager %s to stager job %s with state %s.',
+                     s, self, i)
+        if self.stagers[s].confirmed:
             return None
         self.stagers[s].confirmed = True
         if i == 0:
@@ -238,6 +268,7 @@ class StagerServerJob:
             s (:obj:`webarchiver.server.base.Node`): The stager server that
                 started the job.
         """
+        logger.debug('Stager %s for stager job %s started.', s, self)
         self.stagers[s].started = True
 
     def started_crawl(self, s):
@@ -247,6 +278,7 @@ class StagerServerJob:
             s (:obj:`webarchiver.server.base.Node`): The crawler server that
                 started the job.
         """
+        logger.debug('Crawler %s for stager job %s started.', s, self)
         self.crawlers[s].started = True
 
     def add_counter(self, s):
@@ -256,6 +288,8 @@ class StagerServerJob:
             s (:obj:`webarchiver.server.base.Node`): The stager server to set
                 as counter.
         """
+        logger.debug('Setting stager %s as counter for stager job %s.', s,
+                     self)
         self.counter = s
 
     def set_as_counter(self):
@@ -265,6 +299,7 @@ class StagerServerJob:
         URLs that can be allowed to be crawled since the last URL quota
         request.
         """
+        logger.debug('Setting as counter for stager job %s.', self)
         self.counter = time.time()
 
     @property
@@ -313,7 +348,9 @@ class StagerServerJob:
     @property
     def url_quota(self):
         """int: The URL quota for the job."""
-        assert self.is_counter
+        if not self.is_counter:
+            logger.error('Stager is not counter for stager job %s.', self)
+            return 0
         old = self.counter
         self.counter = time.time()
         return int((self.counter-old)*self.rate)
@@ -338,6 +375,10 @@ class StagerServerJob:
     def counter(self, value):
         assert type(value) in {float, Node}
         self._counter = value
+
+    def __repr__(self):
+        return '<{} at 0x{:x} job={}>' \
+            .format(__name__, id(self), self.settings.identifier)
 
 
 class StagerServerJobCrawler:
