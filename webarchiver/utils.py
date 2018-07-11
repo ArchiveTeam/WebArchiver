@@ -111,7 +111,7 @@ def split_set(l, n):
     """
     if type(l) is dict:
         l = set(l.values())
-    elif type(l) is list:
+    else:
         l = set(l)
     size = math.ceil(len(l)/n)
     lists = []
