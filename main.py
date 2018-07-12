@@ -3,7 +3,7 @@ import argparse
 import os
 import sys
 
-from webarchiver import main
+from webarchiver import main, version
 
 
 def main_():
@@ -14,6 +14,8 @@ def main_():
     on the given arguments.
     """
     parser = argparse.ArgumentParser()
+    parser.add_argument('-v', '--version', action='store_true',
+                        help='Get the version of WebArchiver.')
     parser.add_argument('-S', '--sort',
                         help='The sort of server to be created.',
                         choices=['crawler', 'stager'], required=True)
@@ -27,11 +29,14 @@ def main_():
                         type=int, metavar='PORT')
     parser.add_argument('-H', '--host', help='The host to use for '
                         'communication. If not set the scripts will try to '
-                        'determine the host.', type=str)
+                        'determine the host.', type=str, metavar='HOST')
     parser.add_argument('-P', '--port', help='The port to use for '
                         'communication. If not set a random port between 3000 '
-                        'and 6000 will be chosen.', type=int)
+                        'and 6000 will be chosen.', type=int, metavar='PORT')
     arguments = parser.parse_args(sys.argv[1:])
+    if arguments.version:
+        version()
+        sys.exit(0)
     main(arguments.sort, arguments.stager_host, arguments.stager_port,
          arguments.host, arguments.port)
 

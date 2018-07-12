@@ -7,10 +7,9 @@ from webarchiver.url import UrlConfig
 
 
 class TestUrlDeduplicationDatabase(unittest.TestCase):
-    """Tests for :class:`webarchiver.database.UrlDeduplicationDatabase`."""
+    """Tests for the database."""
 
     def test_single_url_exists(self):
-        """Test if URL exists when added."""
         d = UrlDeduplicationDatabase('test', 'test')
         d.insert(UrlConfig('', 'https://example.org/', 0, ''))
         self.assertTrue(d.has_url('https://example.org/'))
@@ -18,7 +17,6 @@ class TestUrlDeduplicationDatabase(unittest.TestCase):
         d.clean()
 
     def test_single_url_not_exists(self):
-        """Test if URL does not exist when not added."""
         d = UrlDeduplicationDatabase('test', 'test')
         d.insert(UrlConfig('', 'https://example.org/', 0, ''))
         self.assertFalse(d.has_url('https://example.com/'))
@@ -26,7 +24,6 @@ class TestUrlDeduplicationDatabase(unittest.TestCase):
         d.clean()
 
     def test_multiple_urls_exists(self):
-        """Test if several URLs exist if added."""
         d = UrlDeduplicationDatabase('test', 'test')
         d.insert(UrlConfig('', 'https://example.org/', 0, ''))
         d.insert(UrlConfig('', 'https://example.com/', 0, ''))

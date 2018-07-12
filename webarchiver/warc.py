@@ -2,11 +2,13 @@
 import hashlib
 import logging
 import os
+import re
 import time
 import urllib
 
 from webarchiver.config import *
 from webarchiver.request import get
+from webarchiver.extractor.simple import extract_urls
 from webarchiver.utils import strip_url_scheme, sha512
 
 import warcio
@@ -20,66 +22,65 @@ class WarcFile:
     """Class to load and process a WARC file.
 
     Attributes:
-        directory_name (str): The directory the WARC file can be found in.
-        filename (str): The filename of the WARC file.
-        filename_deduplicated (str): The filename of the WARC that is created
-            after deduplication.
-        pathname (str): The path of the WARC file.
-        pathname_deduplicated (str): The path of the WARC that is created after
-            deduplication.
+        warc_path (str): The path of the WARC file.
+        warc_path_processes (str): The path of the WARC that is created after
+            processing.
     """
 
-    def __init__(self, directory_name):
+    def __init__(self, warc_path):
         """Inits the :class:`WarcFile` object.
 
-        Initializes the filenames and directory names of the current and to be
-        created files. The WARC file should have the same name as the directory
-        it is in, but with ``.warc.gz`` appended.
+        Initializes the filenames of the initial and deduplicated WARC files.
 
         Args:
-            directory_name (str): The directory the WARC file can be found.
+            warc_path (str): The path to the WARC file.
 
         Raises:
             FileNotFoundError: When the WARC file is not found.
         """
-        self.directory_name = directory_name
-        self.filename = str(int(time.time())) + '_' + \
-                        os.path.basename(self.directory_name) + '.warc.gz'
-        self.filename_deduplicated = self.filename.split('.')[0] + \
-                                     '-deduplicated.warc.gz'
-        self.pathname = os.path.join(self.directory_name, self.filename)
-        self.pathname_deduplicated = os.path.join(self.directory_name,
-                                                  self.filename_deduplicated)
-        logger.debug('Prepare WARC file %s',
-                     self.pathname, self.pathname_deduplicated)
+        self.warc_path = warc_path
+        self.warc_path_processed = self.warc_path.rsplit('.', 2)[0] + \
+            '-processed.warc.gz'
+        if not os.path.isfile(self.warc_path):
+            logger.error('WARC file %s not found.', self.warc_path)
+            raise FileNotFoundError(self.warc_path)
+        logger.debug('Prepared from processing WARC file %s.', self.warc_path)
 
-    def deduplicate(self):
-        """Deduplicates the WARC file.
+    def process(self):
+        """Processes the WARC file.
 
-        Each response WARC record from the original WARC file is checked for
-        being a duplicate with function :func:`self._record_is_duplicate`. If a
-        duplicate is found, the record is converted to a revisit record and
-        written to the deduplicated WARC file. If no deduplicate is found the
-        original record is written to the deduplicated WARC file.
+        Each record in the WARC file is processed. If an URL is found between
+        <...>,  the brackets are removed from around the URL.
+
+        If the WARC is set to be deduplicated by setting `deduplicate` to True,
+        each response WARC record is deduplicated using
+        function :func:`self._record_is_duplicate`. If a duplicate is found,
+        the record is converted to a revisit record and written to the
+        deduplicated WARC file. If no deduplicate is found the original record
+        is written to the deduplicated WARC file.
         """
-        if not os.path.isfile(self.pathname):
-            logger.error('WARC file %s not found.', self.pathname)
-            raise FileNotFoundError(self.pathname)
-        logger.info('Deduplicating WARC file %s into WARC file %s.',
-                    self.pathname, self.pathname_deduplicated)
-        with open(self.pathname, 'rb') as f_in, \
-                open(self.pathname_deduplicated, 'wb') as f_out:
+        logger.info('Processing WARC file %s into WARC file %s.',
+                    self.warc_path, self.warc_path_processed)
+        if self.deduplicate:
+            logger.info('Deduplicating WARC file %s into WARC file %s.',
+                        self.warc_path, self.warc_path_processed)
+        with open(self.warc_path, 'rb') as f_in, \
+                open(self.warc_path_processed, 'wb') as f_out:
             writer = WARCWriter(filebuf=f_out, gzip=True)
             for record in ArchiveIterator(f_in):
-                if record.rec_headers.get_header('WARC-Type') == 'response':
-                    url = record.rec_headers.get_header('WARC-Target-URI')
+                url = record.rec_headers.get_header('WARC-Target-URI')
+                if url is not None and url.startswith('<'):
+                    url = re.search('^<(.+)>$', url).group(1)
+                    record.rec_headers.replace_header('WARC-Target-URI', url)
+                if record.rec_headers.get_header('WARC-Type') in 'response' \
+                        and self.deduplicate:
                     digest = record.rec_headers \
-                                   .get_header('WARC-Payload-Digest')
+                        .get_header('WARC-Payload-Digest')
                     logger.debug('Deduplicating record %s %s.', url, digest)
                     duplicate = self._record_is_duplicate(url, digest)
                     if not duplicate:
-                        logger.debug('Record %s %s is not a duplicate.', url,
-                                     digest)
+                        logger.debug('Record %s %s is not a duplicate.',
+                                     url, digest)
                         writer.write_record(record)
                     else:
                         logger.debug('Record %s %s is a duplicate.', url,
@@ -90,6 +91,27 @@ class WarcFile:
                         )
                 else:
                     writer.write_record(record)
+
+    def extract_urls(self):
+        """Extracts URLs from the WARC file.
+
+        The processed WARC file will be used if it exists, else the original
+        WARC file is used. From each response record in the WARC file the URLs
+        are extracted.
+
+        Yields:
+            tuple of (parent URL, URL): The discovered URLs and their parent
+                URLs. The URLs have type str.
+        """
+        to_open = self.warc_path
+        if os.path.isfile(self.warc_path_processed):
+            to_open = self.warc_path_processed
+        with open(to_open, 'rb') as f:
+            for record in ArchiveIterator(f):
+                if record.rec_headers.get_header('WARC-Type') == 'response':
+                    url = record.rec_headers.get_header('WARC-Target-URI')
+                    for s in extract_urls(url, record):
+                        yield url, s
 
     def _record_is_duplicate(self, url, digest):
         """Checks if a record is a duplicate.
@@ -157,4 +179,17 @@ class WarcFile:
                                                .get_header('WARC-Target-URI'),
                                          'revisit', warc_headers=warc_headers,
                                          http_header=record.http_headers)
+
+    @property
+    def deduplicate(self):
+        """bool: If the WARC file should be deduplicated."""
+        if not hasattr(self, '_deduplicate'):
+            return False
+        return self._deduplicate
+
+    @deduplicate.setter
+    def deduplicate(self, value):
+        if type(value) is not bool:
+            raise ValueError('Should be bool.')
+        self._deduplicate = value
 

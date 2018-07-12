@@ -1,10 +1,14 @@
 """Decentralized web crawler and archiver."""
 import atexit
+import distutils.spawn
 import logging
+import sys
 
 from webarchiver.config import *
 from webarchiver.log import Log
 
+if not os.path.isdir(LOGS_DIRECTORY):
+    os.makedirs(LOGS_DIRECTORY)
 log = Log()
 
 logger = logging.getLogger(__name__)
@@ -20,6 +24,10 @@ def main(*args, **kwargs):
     check()
     logger.info('Starting WebArchiver.')
     start(*args, **kwargs)
+
+
+def version():
+    print(VERSION)
 
 
 def start(sort, stager_host, stager_port, host, port):
@@ -50,19 +58,15 @@ def check():
     Creates the ``CRAWL_DIRECTORY`` and ``LOGS_DIRECTORY`` directories if they
     do not exist and checks if wget-lua is compiled.
     """
-    if not os.path.isdir(LOGS_DIRECTORY):
-        logger.info('Directory \'%s\' not found, creating.', LOGS_DIRECTORY)
-        os.makedirs(LOGS_DIRECTORY)
     if not os.path.isdir(CRAWLS_DIRECTORY):
         logger.info('Directory \'%s\' not found, creating.', CRAWLS_DIRECTORY)
         os.makedirs(CRAWLS_DIRECTORY)
-    if not os.path.isfile(WGET_LUA_FILENAME):
-        logger.error('File \'{0}\' not found. See the README for building '
-                     '{0}.', WGET_LUA_FILENAME)
+    if not distutils.spawn.find_executable(WGET_EXECUTABLE):
+        logger.error('Executable \'%s\' not found, please install this.',
+                     WGET_EXECUTABLE)
         sys.exit(1)
 
 @atexit.register
 def shutdown():
     log.shutdown()
-
 

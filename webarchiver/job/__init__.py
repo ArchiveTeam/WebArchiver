@@ -82,10 +82,10 @@ class Job(threading.Thread):
         """
         while not self.finished:
             if len(self._urls) > 0 \
-                and self._url_quota >= CRAWLER_MIN_URL_QUOTA \
-                and (check_time(self._last_time, JOB_MAX_WAIT)
-                or check_time(self._last_time_url, JOB_MAX_WAIT_URLS)
-                or len(self._urls) >= JOB_MAX_URLS):
+                    and self._url_quota >= CRAWLER_MIN_URL_QUOTA \
+                    and (check_time(self._last_time, JOB_MAX_WAIT)
+                    or check_time(self._last_time_url, JOB_MAX_WAIT_URLS)
+                    or len(self._urls) >= JOB_MAX_URLS):
                 self.run_crawl()
             time.sleep(1)
 
@@ -138,7 +138,7 @@ class Job(threading.Thread):
                 for parenturl, url in found:
                     self._set_found.add(
                         UrlConfig(self._identifier, url,
-                                  urls_depths[parenturl]+1, parenturl)
+                                  list(urls_depths.values())[0]+1, parenturl) #TODO depth in case of redirect
                     )
         else:
             self._urls.update(urls)

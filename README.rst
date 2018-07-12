@@ -15,10 +15,13 @@ WebArchiver has the following dependencies:
 
 Install these by running ``pip install warcio requests`` or use ``pip3`` in case your default Python version is Python 2.
 
+``wget`` is also required, this can be installed using::
+
+    sudo apt-get install wget
+
 To run WebArchiver:
  #. ``git clone`` this repository,
  #. ``cd`` into it,
- #. Compile wget-lua using ``(cd crawl; ./get-wget-lua.sh)``,
  #. Run ``python main.py`` with options or use ``python3`` is your default Python version is Python 2.
 
 Options
@@ -29,6 +32,9 @@ The following options are available for setting up a server in a network or crea
  * ``-h``
 
    ``--help``
+ * ``-v``
+
+   ``-version``: Get the version of WebArchiver.
  * ``-S SORT``
 
    ``--sort=SORT``: The sort of server to be created. ``SORT`` can be ``stager`` for a stager or ``crawler`` for a crawler. This argument is required.

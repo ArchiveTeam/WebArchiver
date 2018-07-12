@@ -16,7 +16,6 @@ LOG_PATH = os.path.join(LOGS_DIRECTORY, '{}.log'
                                     .strftime('%Y%m%d%H%M%S')))
 
 URL_QUOTA_TIME = 2
-FOUND_URLS_FILE = 'found'
 
 LISTEN_QUEUE = 300
 
@@ -25,44 +24,23 @@ JOB_MAX_URLS = 1000
 JOB_MAX_WAIT = 300
 JOB_MAX_WAIT_URLS = 30
 JOBS_CHECK_TIME = 5
+FINISH_CHECK_TIME = 60
 
 CRAWLER_MIN_URL_QUOTA = 100
 CRAWL_SCRIPTS = 'crawl'
 CRAWLS_NEW_URLS_FILE = 'new_urls.txt'
 CRAWLS_DIRECTORY = 'data'
-WGET_LUA_EXIT_CODES = [0, 4, 8]
-WGET_LUA_FILENAME = os.path.join(CRAWL_SCRIPTS, 'wget-lua')
-LUA_SCRIPT_FILENAME = 'wget.lua'
-LUA_SCRIPT_TABLE_SHOW_FILENAME = 'table_show.lua'
-LUA_SCRIPT_URLCODE_FILENAME = 'urlcode.lua'
-LUA_SCRIPT_JSON_FILENAME = 'JSON.lua'
-LUA_SCRIPT_PATH = os.path.join(CRAWL_SCRIPTS, LUA_SCRIPT_FILENAME)
-LUA_SCRIPT_TABLE_SHOW_PATH = os.path.join(CRAWL_SCRIPTS, LUA_SCRIPT_TABLE_SHOW_FILENAME)
-LUA_SCRIPT_URLCODE_PATH = os.path.join(CRAWL_SCRIPTS, LUA_SCRIPT_URLCODE_FILENAME)
-LUA_SCRIPT_JSON_PATH = os.path.join(CRAWL_SCRIPTS, LUA_SCRIPT_JSON_FILENAME)
-LUA_SCRIPT_CHECK_TIME = None
+WGET_EXIT_CODES = [0, 4, 6, 8]
+WGET_EXECUTABLE = 'wget'
 USER_AGENT = 'ArchiveTeam; Googlebot/2.1'
 WGET_LOG = 'wget.log'
 WGET_TEMP = 'wget.tmp'
 WGET_TIMEOUT = '30'
 WGET_WAITRETRY = '30'
+WGET_TRIES = '5'
 VERSION = '0.0.1'
 DEDUPLICATION_SERVER = None
 FILES = []
-#FILES = [
-#    'archive.py',
-#    'config.py',
-#    'main.py',
-#    'request.py',
-#    'session.py',
-#    'utils.py',
-#    'warc.py',
-#    'server.py',
-#    LUA_SCRIPT_PATH,
-#    LUA_SCRIPT_TABLE_SHOW_PATH,
-#    LUA_SCRIPT_URLCODE_PATH,
-#    LUA_SCRIPT_JSON_PATH
-#]
 
 DEFAULT_CRAWLER_SERVER_CONFIG = {
     'confirmed': False

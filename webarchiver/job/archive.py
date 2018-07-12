@@ -33,7 +33,6 @@ class ArchiveUrls:
         """
         self.urls = urls
         self.directory = directory
-        self._found_urls_path = os.path.join(directory, FOUND_URLS_FILE)
         if not os.path.isdir(self.directory):
             os.makedirs(self.directory)
         logger.debug('Created URL archive job %s.', self)
@@ -42,39 +41,26 @@ class ArchiveUrls:
         """Runs the crawl.
 
         An archive jobs is started and the return code is checked against the
-        allowed list of return codes. The resulting WARC file is dedupicated
-        and discovered URLs are loaded is they are readable URLs. The extracted
-        data about URLs was merged using ``\\0``, this is split again. The data
-        is::
+        allowed list of return codes. The resulting WARC is deduplicated and
+        URLs are extracted.
 
-            <parent URL> <discovered URL>
-
-        Returns:
+        Yields:
             set of tuples: Each tuple consists of the parent URL and discovered
                 URL.
             bool: If the return code from the crawl is not in the list of
-                allowed return codes.
+                allowed return codes, False is returned.
         """
         logger.debug('Starting URL archive job %s.', self)
-        wget_lua_exit_code = self.archive()
+        wget_exit_code = self.archive()
         logger.debug('Wget for URL archive job %s exited with code %s.',
-                     self, wget_lua_exit_code)
-        if wget_lua_exit_code not in WGET_LUA_EXIT_CODES:
+                     self, wget_exit_code)
+        if wget_exit_code not in WGET_EXIT_CODES:
             logger.warning('Wget for archiver job %s exited with a bad code.',
                            self)
             return False
-        self.warc_file.deduplicate()
-        discovered_data = set()
-        with open(self._found_urls_path, 'rb') as f:
-            for line in f:
-                if len(line) == 0:
-                    continue
-                try:
-                    line = line.decode('utf-8')
-                except UnicodeDecodeError:
-                    continue
-                discovered_data.add(tuple(line.strip().split('\0')))
-        return discovered_data
+        self.warc_file.deduplicate = True
+        self.warc_file.process()
+        return set(self.warc_file.extract_urls())
 
     def archive(self):
         """Runs a crawl job.
@@ -86,14 +72,13 @@ class ArchiveUrls:
         """
         logger.debug('Running URL archive job %s using arguments %s.', self,
                      self.arguments)
-        os.environ['FOUND_URLS_FILE'] = self._found_urls_path
         return subprocess.call(self.arguments)
 
     @property
     def warc_file(self):
         """:obj:`webarchiver.warc.WarcFile`: The WARC file object."""
         if not hasattr(self, '_warc_file'):
-            self._warc_file = WarcFile(self.directory)
+            self._warc_file = WarcFile(os.path.join(self.directory, [n for n in os.listdir(self.directory) if n.endswith('warc.gz')][0]))
         return self._warc_file
 
     @property
@@ -101,23 +86,18 @@ class ArchiveUrls:
         """list: Argument for the crawl.""" #TODO extend doc with options in list
         if not hasattr(self, '_arguments'):
             arguments = [
-                WGET_LUA_FILENAME,
+                WGET_EXECUTABLE,
                 '--user-agent', USER_AGENT,
-                '--no-verbose',
                 '--no-cookies',
-                '--lua-script', LUA_SCRIPT_PATH,
                 '--no-check-certificate',
                 '--output-file', os.path.join(self.directory, WGET_LOG),
                 '--output-document', os.path.join(self.directory, WGET_TEMP),
                 '--execute', 'robots=off',
-                '--rotate-dns',
-                '--no-parent',
-                '--page-requisites',
                 '--timeout', WGET_TIMEOUT,
-                '--tries', 'inf',
-                '--span-hosts',
+                '--tries', WGET_TRIES,
                 '--waitretry', WGET_WAITRETRY,
-                '--warc-file', self.warc_file.pathname.replace('.warc.gz', ''),
+                '--warc-file', os.path.join(self.directory,
+                                            os.path.basename(self.directory)),
                 '--warc-header', 'operator: Archive Team',
                 '--warc-header', 'archiver-version: {}'.format(VERSION),
             ]
