@@ -74,7 +74,6 @@ class StagerServerJob:
         self.discovered_urls = init_urls(self.identifier, self.initial_urls) \
             if self.initial else {}
         self.current_urls = {}
-        self.finished = False
         self.crawlers = {}
         self.stagers = {}
         self.backup = {}
@@ -96,6 +95,7 @@ class StagerServerJob:
                            self)
             return None
         self.crawlers[s] = StagerServerJobCrawler(s)
+        self.reset_finished()
 
     def crawler_confirmed(self, s):
         """Confirmes the crawler server.
@@ -120,6 +120,7 @@ class StagerServerJob:
         logger.debug('Adding stager %s to crawler job %s.', s, self)
         self.stagers[s] = StagerServerJobStager(s)
         self.backup[s.listener] = {}
+        self.reset_finished()
 
     def backup_url(self, s, urlconfig):
         """Backs an URL up.
@@ -137,6 +138,7 @@ class StagerServerJob:
         logger.debug('Backing up URL %s from stager %s to stager job %s.',
                      urlconfig, s, self)
         self.backup[s.listener][urlconfig.url] = urlconfig
+        self.reset_finished()
 
     def share_urls(self):
         """Shares the discovered URLs over the stager servers.
@@ -181,6 +183,7 @@ class StagerServerJob:
                 if add_current:
                     self.backup_url(s, urlconfig)
                 del self.discovered_urls[urlconfig.url]
+        self.reset_finished()
 
     def add_url_crawler(self, urlconfig):
         """Adds an URL to a crawler.
@@ -195,6 +198,7 @@ class StagerServerJob:
         logger.debug('Assigning URL %s to crawler %s.', urlconfig, crawler)
         self.current_urls[urlconfig.url] = urlconfig
         self.crawlers[crawler].add_url(urlconfig.url)
+        self.reset_finished()
         return crawler
 
     def add_url(self, urlconfig):
@@ -206,6 +210,7 @@ class StagerServerJob:
         logger.debug('Adding discovered URL %s to stager job %s.', urlconfig,
                      self)
         self.discovered_urls[urlconfig.url] = urlconfig
+        self.reset_finished()
 
     def finish_url(self, s, url, listener):
         """Finishes an URL.
@@ -241,6 +246,7 @@ class StagerServerJob:
                 return False
             del self.current_urls[url]
             self.crawlers[s].remove_url(url)
+        self.reset_finished()
         return True
 
     def confirmed(self, s, i):
@@ -301,6 +307,55 @@ class StagerServerJob:
         """
         logger.debug('Setting as counter for stager job %s.', self)
         self.counter = time.time()
+
+    def reset_finished(self):
+        """Resetting all nodes to not having finished.
+
+        Note:
+            When one or more nodes have finished, it is possible that they get
+            new data from nodes that are not yet finished. Therefor all nodes
+            are set to not finished is one of the nodes is active.
+        """
+        logger.debug('Resetting finished for stager job %s.', self)
+        for n in self.stagers.values():
+            n.finished = False
+        for n in self.crawlers.values():
+            n.finished = False
+
+    def set_crawler_finished(self, s):
+        """Sets a crawler server to having finished.
+
+        Note:
+            This means the crawler server has currently no work to be done.
+        """
+        self.crawlers[s].finished = True
+
+    def set_stager_finished(self, s):
+        """Sets a stager server to having finished.
+
+        Note:
+            This means the stager server has currently no work to be done.
+        """
+        self.stagers[s].finished = True
+
+    @property
+    def crawlers_finished(self):
+        """bool: True if all crawler servers are finished."""
+        for n in self.crawlers.values():
+            if not n.finished:
+                return False
+
+    @property
+    def stagers_finished(self):
+        """bool: True if all stager servers are finished."""
+        for n in self.stagers.values():
+            if not n.finished:
+                return False
+
+    @property
+    def finished(self):
+        """bool: True if all stager and crawler servers are finished."""
+        return self.crawlers_finished and self.stagers_finished
 
     @property
     def rate(self):
@@ -387,6 +442,7 @@ class StagerServerJobCrawler:
     Attributes:
         s (:obj:`webarchiver.server.base.Node`): The crawler server.
         confirmed (bool): Whether the crawler server is confirmed.
+        finished (bool): Whether the crawler server is finished.
         started (bool): Whether the crawler server started the job.
         urls (set of str): The URLs assigned to the crawler server.
     """
@@ -399,6 +455,7 @@ class StagerServerJobCrawler:
         """
         self.s = s
         self.confirmed = False
+        self.finished = False
         self.started = False
         self.urls = set()
 
@@ -425,6 +482,7 @@ class StagerServerJobStager:
     Attributes:
         s (:obj:`webarchiver.server.base.Node`): The stager server.
         confirmed (bool): Whether the stager server is confirmed.
+        finished (bool): Whether the crawler server is finished.
         started (bool): Whether the stager server started the job.
     """
 
@@ -436,6 +494,7 @@ class StagerServerJobStager:
         """
         self.s = s
         self.confirmed = False
+        self.finished = False
         self.started = False
 
 __all__ = ('StagerServerJob',)

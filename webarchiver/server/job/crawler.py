@@ -41,9 +41,12 @@ class CrawlerServerJob:
             found_urls_set (set): The set to add the discovered URLs to.
         """
         self.settings = settings
-        self.stager = []
+        self.stagers = []
         self.started = False
         self.received_url_quota = time.time()
+        self._filenames_set = filenames_set
+        self._finished_urls_set = finished_urls_set
+        self._found_urls_set = found_urls_set
         self._job = Job(self.identifier, filenames_set, finished_urls_set,
                         found_urls_set)
         self._urls = {}
@@ -59,11 +62,11 @@ class CrawlerServerJob:
                 to the job.
         """
         logger.debug('Adding stager %s to crawler job %s.', s, self)
-        if s in self.stager:
+        if s in self.stagers:
             logger.warning('Stager %s already added to crawler job %s.', s,
                            self)
             return None
-        self.stager.append(s)
+        self.stagers.append(s)
 
     def add_url(self, s, urlconfig):
         """Adds an URL to the job.
@@ -202,6 +205,13 @@ class CrawlerServerJob:
     def identifier(self):
         """str: The job identifier."""
         return self.settings.identifier
+
+    @property
+    def finished(self):
+        """bool: True if crawler is not active."""
+        return len(self._urls) == 0 and len(self._filenames_set) == 0 \
+            and len(self._finished_urls_set) == 0 \
+            and len(self._found_urls_set) == 0
 
     def __repr__(self):
         return '<{} at 0x{:x} job={}>' \

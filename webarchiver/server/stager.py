@@ -43,6 +43,7 @@ class StagerServer(BaseServer):
             self.init_stager((stager_host, stager_port))
         self._jobs = {}
         self._last_jobs_check = 0
+        self._last_finish_check = 0
         self._used_space = 0
         self._uploading = {}
         self.test = 0 #TODO TEMP
@@ -73,6 +74,7 @@ class StagerServer(BaseServer):
                 self.start_job(job)
                 self.test = 1
         self.check_jobs()
+        self.finish_jobs()
 
     def _get_jobs(self):
         """Adds new jobs.
@@ -191,6 +193,26 @@ class StagerServer(BaseServer):
                     self._write_socket_message(backups, 'JOB_URL_BACKUP',
                                                urlconfig, s.listener)
             self._last_jobs_check = time.time()
+
+    def finish_jobs(self):
+        """Checks running jobs for being finished.
+
+        If a job is finished on this stager server, this is reported to other
+        stager servers runnign this job::
+
+            STAGER_JOB_FINISHED <job identifier>
+
+        Note:
+            A finished job means that the job currently is not active. It can
+            become active again if new URLs are send to it.
+        """ #TODO what do if a job is fully job.finished?
+        if not check_time(self._last_finish_check, FINISH_CHECK_TIME):
+            return None
+        for identifier, job in self._jobs.items():
+            if job.crawlers_finished:
+                self._write_socket_message(job.stagers, 'STAGER_JOB_FINISHED',
+                                           identifier)
+        self._last_finish_check = time.time()
 
     def create_job(self, settings, initial_stager=None, initial=True):
         """Creates a job.
@@ -966,6 +988,40 @@ class StagerServer(BaseServer):
         if write_file(path, message[2]):
             self._write_socket_message(s, 'WARC_FILE_RECEIVED', message[3],
                 message[1])
+
+    def _command_crawler_job_finished(self, s, message):
+        """Processes the ``CRAWLER_JOB_FINISHED`` command.
+
+        The crawler server is currently doing no work for the job assigned to
+        it. The crawler server is set to have finished job.
+
+        Args:
+            s (:obj:`webarchiver.server.base.Node`): The crawler server that
+                queued the command.
+            message (list): The command that was received::
+
+                    CRAWLER_JOB_FINISHED <job identifier>
+        """
+        if message[1] not in self._jobs:
+            return None
+        self._jobs[message[1]].set_crawler_finished(s)
+
+    def _command_stager_job_finished(self, s, message):
+        """Processes the ``STAGER_JOB_FINISHED`` command.
+
+        The stager server is currently doing no work for the job assigned to
+        it. The stager server is set to have finished job.
+
+        Args:
+            s (:obj:`webarchiver.server.base.Node`): The stager server that
+                queued the command.
+            message (list): The command that was received::
+
+                    STAGER_JOB_FINISHED <job identifier>
+        """
+        if message[1] not in self._jobs:
+            return None
+        self._jobs[message[1]].set_stager_finished(s)
 
     @property
     def free_space(self):

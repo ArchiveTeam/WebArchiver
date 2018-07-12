@@ -40,6 +40,7 @@ class CrawlerServer(BaseServer):
         self._found_urls_set = LockedSet()
         self._last_upload_request = 0
         self._last_url_quota = 0
+        self._last_finish_check = 0
         logger.info('Created crawler server.')
 
     def _run_round(self):
@@ -57,6 +58,7 @@ class CrawlerServer(BaseServer):
         self.finish_urls()
         self.found_urls()
         self.request_url_quota()
+        self.finish_jobs()
 
     def _create_socket(self, address):
         """Creates and connects a :class:`webarchiver.server.base.Node` and
@@ -175,7 +177,7 @@ class CrawlerServer(BaseServer):
             for job, path in self._filenames_set:
                 warc_file = self._upload_permissions[path]
                 if not warc_file.requested:
-                    self._write_socket_message(self._jobs[job].stager,
+                    self._write_socket_message(self._jobs[job].stagers,
                                                'REQUEST_UPLOAD_PERMISSION',
                                                job, path, warc_file.filesize)
                     warc_file.requested = True
@@ -236,7 +238,7 @@ class CrawlerServer(BaseServer):
                 identifier = urlconfig.job_identifier
                 job = self._jobs[identifier]
                 job.finished_url(urlconfig)
-                self._write_socket_message(job.stager, 'JOB_URL_FINISHED',
+                self._write_socket_message(job.stagers, 'JOB_URL_FINISHED',
                                            urlconfig.job_identifier,
                                            urlconfig.url,
                                            job.get_url_stager(urlconfig) \
@@ -273,10 +275,31 @@ class CrawlerServer(BaseServer):
                     continue
                 print('passed', urlconfig.url, urlconfig.parent_url,
                       urlconfig.depth)
-                stager = sample(self._jobs[identifier].stager, 1)[0]
+                stager = sample(self._jobs[identifier].stagers, 1)[0]
                 self._write_socket_message(stager, 'JOB_URL_DISCOVERED',
                                            urlconfig)
             self._found_urls_set.difference_update(finished)
+
+    def finish_jobs(self):
+        """Checks running jobs for being finished.
+
+        If a job is finished on this crawler server, this is reported to the
+        stager servers connected to the crawler server that are running the
+        job::
+
+            CRAWLER_JOB_FINISHED <job identifier>
+
+        Note:
+            A finished job means that the job currently is not active. It can
+            become active again if new URLs are send to it.
+        """
+        if not check_time(self._last_finish_check, FINISH_CHECK_TIME):
+            return None
+        for identifier, job in self._jobs.items():
+            if job.finished:
+                self._write_socket_message(job.stagers, 'CRAWLER_JOB_FINISHED',
+                                           identifier)
+        self._last_finish_check = time.time()
 
     def request_url_quota(self):
         """Requests a quotum for URLs to crawl for a job.
@@ -294,7 +317,7 @@ class CrawlerServer(BaseServer):
                 job: self._jobs[job].received_url_quota
                 for job in self._jobs
             })
-            self._write_socket_message(sample(self._jobs[job].stager, 1)[0],
+            self._write_socket_message(sample(self._jobs[job].stagers, 1)[0],
                                        'REQUEST_URL_QUOTA', job)
 
     def create_job(self, settings):
