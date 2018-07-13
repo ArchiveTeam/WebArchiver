@@ -69,7 +69,7 @@ class BaseServer:
                 3000 and 6000 is chosen.
         """
         self._address = (host or socket.getfqdn(),
-                         port or random.randrange(3000, 6000))
+                         port or random.randrange(50000, 60000))
         self._read_list = []
         self._write_list = []
         self._error_list = []
