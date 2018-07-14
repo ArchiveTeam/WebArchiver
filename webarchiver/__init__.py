@@ -3,8 +3,10 @@ import atexit
 import distutils.spawn
 import logging
 import sys
+import threading
 
 from webarchiver.config import *
+from webarchiver import dashboard
 from webarchiver.log import Log
 
 if not os.path.isdir(LOGS_DIRECTORY):
@@ -30,7 +32,8 @@ def version():
     print(VERSION)
 
 
-def start(sort, stager_host, stager_port, host, port):
+def start(sort, stager_host, stager_port, host, port, no_dashboard,
+          dashboard_port):
     """Starts the log and WebArchiver.
 
     Args:
@@ -49,6 +52,8 @@ def start(sort, stager_host, stager_port, host, port):
         logger.info('Starting stager server.')
         from webarchiver.server import StagerServer
         server = StagerServer(stager_host, stager_port, host, port)
+    if not no_dashboard:
+        dashboard.create(dashboard_port, server)
     server.run()
 
 

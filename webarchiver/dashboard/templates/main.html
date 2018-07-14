@@ -1,0 +1,12 @@
+{% extends 'base.html' %}
+
+{% block main_title %}{{ sort|title }}{% endblock %}
+
+{% block content %}
+<p>This is the dashboard for your {{ sort }} server.</p>
+<ul>
+    <li><a href="/config">Configuration</a></li>
+    <li><a href="/jobs">Jobs</a></li>
+</ul>
+{% endblock %}
+

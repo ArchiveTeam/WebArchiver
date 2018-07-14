@@ -1023,6 +1023,13 @@ class StagerServer(BaseServer):
             return None
         self._jobs[message[1]].set_stager_finished(s)
 
+    def get_job(self, identifier):
+        return self._jobs[identifier]
+
+    @property
+    def job_identifiers(self):
+        return list(self._jobs.keys())
+
     @property
     def free_space(self):
         """int: The available space. ``MAX_SPACE`` is maximum available space.

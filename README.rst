@@ -10,10 +10,11 @@ Usage
 
 WebArchiver has the following dependencies:
 
+ * ``flask``
  * ``requests``
  * ``warcio``
 
-Install these by running ``pip install warcio requests`` or use ``pip3`` in case your default Python version is Python 2.
+Install these by running ``pip install flask requests warcio`` or use ``pip3`` in case your default Python version is Python 2.
 
 ``wget`` is also required, this can be installed using::
 
@@ -50,6 +51,8 @@ The following options are available for setting up a server in a network or crea
  * ``-P PORT``
 
    ``--port=PORT``: The port to use for communication. If not set a random port between 3000 and 6000 will be chosen.
+ * ``--no-dashboard``: Do not create a dashboard.
+ * ``--dashboard-port``: The port to use for the dashboard.
 
 Add a job
 ~~~~

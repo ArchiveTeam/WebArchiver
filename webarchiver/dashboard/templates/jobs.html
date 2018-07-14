@@ -1,0 +1,15 @@
+{% extends 'base.html' %}
+
+{% block title %}Jobs{% endblock %}
+
+{% block content %}
+<p>{{ jobs|length }} jobs running.</p>
+{% if jobs|length > 0 %}
+<ul>
+{% for job in jobs %}
+    <li><a href="/job/{{ job }}">{{ job }}</a></li>
+{% endfor %}
+</ul>
+{% endif %}
+{% endblock %}
+

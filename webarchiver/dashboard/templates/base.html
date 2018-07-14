@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8">
+        <title>{% block main_title %}{% block title %}{% endblock %}{% endblock %}{% if self.title() or self.main_title %} - {% endif %}WebArchiver Dashboard</title>
+    </head>
+    <body>
+        <div id="content">
+{% if self.title() %}
+            <h1>{{ self.title() }}</h1>
+{% else %}
+            <h1>Dashboard</h1>
+{% endif %}
+            {% block content %}{% endblock %}
+        </div>
+    </body>
+</html>
+
