@@ -5,7 +5,20 @@
 {% block content %}
 <div style="background-color:lightgray">
     <h2>Configuration</h2>
-    <p>Identifier: {{ identifier }}</p>
+    <ul>
+        <li>Identifier: {{ settings.identifier }}</li>
+        <li>Depth: {{ settings.depth }}</li>
+        <li>Rate: {{ settings.rate }}</li>
+        <li>Allow regex{% if settings.allow_regex|length > 1 %}es{% endif %}:
+            {% for regex in settings.allow_regex %}<br>&emsp;{{ regex }}{% endfor %}
+        </li>
+        <li>Ignore regex{% if settings.ignore_regex|length > 1 %}es{% endif %}:
+            {% for regex in settings.ignore_regex %}<br>&emsp;{{ regex }}{% endfor %}
+        </li>
+        <li>Initial URL{% if settings.urls|length > 1 %}s{% endif %}:
+            {% for url in settings.urls %}<br>&emsp;<a href={{ url }}>{{ url }}</a>{% endfor %}
+        </li>
+    </ul>
 </div>
 <div style="background-color:lavender">
     <h2>Statistics</h2>

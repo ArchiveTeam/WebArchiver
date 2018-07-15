@@ -31,7 +31,8 @@ def jobs():
 @app.route('/job/<identifier>')
 @app.route('/jobs/<identifier>')
 def job(identifier):
-    return flask.render_template('job.html', identifier=identifier)
+    return flask.render_template('job.html', identifier=identifier,
+                                 settings=server.get_job(identifier).settings)
 
 
 def run(port, server=None):
