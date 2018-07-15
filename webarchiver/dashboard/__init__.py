@@ -36,7 +36,7 @@ def run(port, server=None):
     globals()['server'] = server
     globals()['sort'] = 'stager' \
         if isinstance(server, webarchiver.server.StagerServer) else 'crawler'
-    app.run(port=port)
+    app.run(host='0.0.0.0', port=port)
 
 
 def create(*args, **kwargs):
