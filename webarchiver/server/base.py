@@ -224,3 +224,8 @@ class BaseServer:
         """
         self._write_socket_message(s, 'PONG')
 
+    @property
+    def address(self):
+        """tuple of str, int: The listening address for the server."""
+        return tuple(self._address)
+

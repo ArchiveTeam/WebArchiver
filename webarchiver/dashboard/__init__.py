@@ -10,7 +10,9 @@ app = flask.Flask(__name__)
 
 @app.route('/')
 def main():
-    return flask.render_template('main.html', sort=sort)
+    return flask.render_template('main.html', sort=sort,
+                                 host=server.address[0],
+                                 port=server.address[1])
 
 
 @app.route('/config')

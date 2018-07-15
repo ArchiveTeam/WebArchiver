@@ -4,6 +4,14 @@
 
 {% block content %}
 <p>This is the dashboard for your {{ sort }} server.</p>
+<p>
+    To connect a new stager or crawler server to this network, use:
+    <ul>
+        <li>Host: {{ host }}</li>
+        <li>Port: {{ port }}</li>
+    </ul>
+</p>
+<h2>Status</h2>
 <ul>
     <li><a href="/config">Configuration</a></li>
     <li><a href="/jobs">Jobs</a></li>
