@@ -52,7 +52,7 @@ The following options are available for setting up a server in a network or crea
 
    ``--port=PORT``: The port to use for communication. If not set a random port between 3000 and 6000 will be chosen.
  * ``--no-dashboard``: Do not create a dashboard.
- * ``--dashboard-port``: The port to use for the dashboard.
+ * ``--dashboard-port=PORT``: The port to use for the dashboard. Default port is 5000.
 
 Add a job
 ~~~~
