@@ -23,7 +23,7 @@ Install these by running ``pip install flask requests warcio`` or use ``pip3`` i
 To run WebArchiver:
  #. ``git clone`` this repository,
  #. ``cd`` into it,
- #. Run ``python main.py`` with options or use ``python3`` is your default Python version is Python 2.
+ #. Run ``python main.py`` with options or use ``python3`` if your default Python version is Python 2.
 
 Options
 ~~~~
